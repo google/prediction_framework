@@ -1,0 +1,23 @@
+title Stop Model
+
+participant scheduler as sch
+participant stop_model as stcf
+participant Firestore as fst
+participant AutoML as automl
+
+
+sch -> stcf: pub:it_is_stop_model_time
+activate stcf
+stcf -> automl: check_model_status(model)
+activate automl
+automl -> stcf: status
+deactivate automl
+alt deployed
+    stcf -> fst: query(prepare_tasks, timestamp)
+    fst --> stcf: tasks:
+    alt no tasks
+        stcf -> automl: stop_model(model)
+        stcf -> fst: delete_footprint(prepare_tasks)
+    end
+end
+

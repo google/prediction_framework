@@ -1,0 +1,84 @@
+"""This module builds the query to extract the relevant customer transactions.
+
+It is used by extract_new_customers_daily_transactions cloud function to extract
+the relevant customer transactions. Here it's possible to filter
+new customers only, repeating customers only or all customer transactions.
+
+
+ Add your imports here i.e
+
+ import os
+ from google.cloud import bigquery
+ from datetime import datetime
+
+ Declare the module global variables here i.e
+
+ FORMULA_PREDICTION_MULTIPLIER = float(
+     os.getenv('FORMULA_PREDICTION_MULTIPLIER', 0.0))
+"""
+
+
+def hook_get_load_data_query(table: str, current_date: str,
+                             new_customer_period: int) -> str:
+  """Returns the query to load the customer transactions.
+
+  Here it is possible to filter just new customers or other customer
+  groups.
+
+  Args:
+    table: A string representing the full path of the BQ table where the
+      transactions are located. This table is the prepared daily transactions
+      table which contains a single line per customer.
+    current_date: A string in YYYYMMDD format representing the date to process.
+      This will be appended to the suffix of the table.
+    new_customer_period: An integer representing the number of days with no
+      transactions in order
+      to consider a customer as new, i.e: if a customer does not appear in the
+        last 365 days it will be considered as new. This value is set in the
+        config.yaml file using MODEL_NEW_CLIENT_DAYS attribute.
+
+  Returns:
+    A string with the query.
+
+      Example:
+
+      query = '''SELECT * FROM `{0}` s1 WHERE _TABLE_SUFFIX = "{1}"
+        AND s1.gclid != "None"
+        AND s1.clientId not in
+        (select s2.clientId FROM `{0}` s2
+        where _TABLE_SUFFIX BETWEEN
+        FORMAT_DATE("%E4Y%m%d",
+                     DATE_SUB(PARSE_DATE("%E4Y%m%d","{1}"),INTERVAL {2} DAY)
+                     )
+        AND FORMAT_DATE("%E4Y%m%d",
+                        DATE_SUB(PARSE_DATE("%E4Y%m%d","{1}"),INTERVAL 1 DAY)
+                        )
+        )'''
+
+        return query.format(table, current_date, new_customer_period)
+  """
+  del table, current_date, new_customer_period  # Unused by default
+
+  return ""
+
+
+def hook_get_bq_schema() -> str:
+  """Returns the schema of the daily transactions table to be written in BQ.
+
+  It's possible just to define those fields which type won't be autodetected.
+
+  Returns:
+    An array of bigquery.SchemaField
+
+      Example:
+
+      return [
+        bigquery.SchemaField('clientId', 'STRING', mode='REQUIRED'),
+        bigquery.SchemaField('timeOnSite', 'FLOAT64', mode='NULLABLE'),
+        bigquery.SchemaField('weekday', 'STRING', mode='REQUIRED'),
+        bigquery.SchemaField('dayMoment', 'STRING', mode='REQUIRED'),
+        bigquery.SchemaField('deviceCategory', 'STRING', mode='REQUIRED'),
+        bigquery.SchemaField('browser', 'STRING', mode='REQUIRED')
+      ]
+  """
+  return []

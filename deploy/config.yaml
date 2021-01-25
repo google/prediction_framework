@@ -1,0 +1,123 @@
+# Configuration file for the generic part of the framework
+#
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# General settings
+# =====================================================================
+DEPLOYMENT_NAME: 'my_deployment'
+SOLUTION_PREFIX: 'pltv'
+# Service account for the deployment. It must be granted in all the GCP projects used
+SERVICE_ACCOUNT: 'service-account-xxx@developer.gserviceaccount.com'
+# Project for pub/sub & firestore
+DEFAULT_GCP_PROJECT: 'my_project'
+DEFAULT_GCP_REGION: 'my_region'
+# BQ settings to read the daily data from
+BQ_DATA_SOURCE_GCP_PROJECT: 'my_datasource_project'
+BQ_DATA_SOURCE_DATA_SET: 'my_data_set'
+BQ_DATA_SOURCE_TABLES: 'just_table_name'
+
+# BQ settings for LTV process
+# =====================================================================
+# If datasets are already created, set it to Y
+SKIP_LTV_DATASET_CREATION: 'Y'
+# Project where the intermediate tables and predictions will be stored
+BQ_LTV_GCP_PROJECT: 'my_project'
+# The broader region: i.e EU (use uppercase)
+BQ_LTV_GCP_BROAD_REGION: 'EU'
+# The BQ data set where to create the tables
+BQ_LTV_DATASET: 'my_data_set'
+# The BQ data transfer region
+BQ_LTV_TRANSFER_REGION: 'europe'
+
+# Model Settings
+# =====================================================================
+# The date when the model was generated. It will be used to label metadata
+MODEL_DATE: 'YYYYMMDD'
+# The model name
+MODEL_NAME: 'my_model_name'
+# The project where the model exists
+MODEL_GCP_PROJECT: 'my_project'
+# The model region. i.e eu (use lower case)
+MODEL_REGION: 'eu'
+# The number of days without activity for a customer to be considered as new (irrelevant if not
+# focusing on new customers)
+MODEL_NEW_CLIENT_DAYS: '365'
+# The endpoint for automl i.e eu-automl.googleapis.com:443 | automl.googleapis.com:443
+MODEL_AUTOML_API_ENDPOINT: 'eu-automl.googleapis.com:443'
+# Blocks or enable the post stop model code execution
+MODEL_POST_STOP_ACTION: 'Y'
+# The number of rows to read at a time.Play with the value if you find API quota exceeded
+MAX_PREDICTION_BATCH_SIZE: '500'
+
+
+# Polling & throttling settings
+# =====================================================================
+# How often the stop model will try to stop the model
+MODEL_STOPPER_POLLER_CONFIG: '0 \*/1 \* \* \*'
+# How often the process will look for available daily transaction table
+DATA_SOURCE_DAILY_TX_POLLER_CONFIG: '0 \*/1 \* \* \*'
+# How often the long running task poller will pick up tasks
+LONG_RUNNING_TASKS_POLLER_CONFIG: '\*/2 \* \* \* \*'
+# Max. age for a long running task or throttled task
+DISCARD_TASKS_OLDER_THAN_HOURS: '23'
+# How many tasks to be taken at a time from the throttling/long running tasks system
+MAX_TASKS_PER_POLL: '10'
+# The timezone to applu to the schedulers
+TIMEZONE: 'Europe/Madrid'
+# Minimum waiting time for prepare messages to wait in the throttling system
+DELAY_PREPARE_DAILY_IN_SECONDS: '60'
+# Minimum waiting time for extract new customers  messages to wait in the throttling system
+DELAY_EXTRACT_NEW_CUSTOMERS_DAILY_IN_SECONDS: '60'
+# Minimum waiting time for predict transactions messages to wait in the throttling system
+DELAY_PREDICT_TRANSACTIONS_IN_SECONDS: '60'
+# Minimum minutes without prediction activity in firestore database, before stopping the model
+STOP_MODEL_WAITING_MINUTES: '30'
+
+
+
+#NO NEED TO CHANGE BELOW THE LINE
+# =====================================================================
+
+# Automatically filled settings on every deployment
+BQ_LTV_TRANSFER_PROJECT_ID: '988912752389'
+BQ_LTV_DAILY_TX_TRANSFER_ID: '5f8f8636-0000-2a63-8b5c-3c286d38a9b2'
+
+# BQ LTV tables: BEST DO NOT MODIFY
+BQ_LTV_ALL_DAILY_TX_TABLE: 'all_daily_transactions'
+BQ_LTV_PREPARED_DAILY_TX_TABLE: 'prepared_daily_transactions'
+BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE: 'prepared_new_customers_daily_transactions'
+BQ_LTV_PREDICTIONS_TABLE: 'predictions'
+BQ_LTV_METADATA_TABLE: 'metadata'
+BQ_LTV_TRAINING_DATA_FEATURES_TABLE: 'training_data_features'
+
+# Cloud Pub/Sub settings (It will be automatically prefixed by DEPLOYMENT_NAME.SOLUTION_PREFIX)
+POLLING_DAILY_TX_TOPIC: 'food.pltv.it_is_polling_tx_time'
+POLLING_LONG_RUNNING_TASKS_TOPIC: 'my_deployment.pltv.food.pltv.it_is_polling_tasks_time'
+THROTTLER_TOPIC: 'food.pltv.throttle'
+DATA_EXTRACTED_TOPIC: 'my_deployment.pltv.food.pltv.enqueue_task'
+DATA_PREPARED_TOPIC: 'food.pltv.data_prepared'
+PREDICT_TRANSACTIONS_TOPIC: 'food.pltv.predict_transactions'
+PREDICT_TRANSACTION_TOPIC: 'food.pltv.predict_transaction'
+ENQUEUE_TASK_TOPIC: 'food.pltv.enqueue_task'
+STOP_MODEL_TOPIC: 'food.pltv.it_is_stop_model_time'
+
+#Firestore prefixes
+FST_PREPARE_COLLECTION: 'prepare_daily_tx_tracking'
+FST_PREDICT_COLLECTION: 'prediction_tracking'
+FST_PREDICT_UNIT_COLLECTION: 'unitary_prediction_tracking'
+FST_LONG_RUNNING_TASKS_COLLECTION: 'long_running_tasks'
+
+

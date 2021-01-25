@@ -1,0 +1,113 @@
+title LTV Daily Prediction
+
+participant scheduler as sch
+participant BQ as bq
+participant tx_daily_extractor as excf
+participant prepare_daily_tx as prcf
+participant extract_new_customers_tx as nwcf
+participant predict_txs as prtxs
+participant predict_tx as prtx
+participant throttle_and_long_running_tasks as lrts
+participant Firestore as fst
+participant AutoML as automl
+
+
+sch -> excf: pub:it_is_polling_tx_time
+activate excf
+excf -> bq: data_transfer
+deactivate excf
+activate bq
+bq -> prcf: pub:daily_extract_ready(run_time)
+activate prcf
+deactivate bq
+prcf -> fst: insert(key,timestamp)
+prcf -> lrts: enqueue(msg)
+deactivate prcf
+activate lrts
+lrts -> fst: write(msg,timestamp)
+lrts -> lrts: wait
+lrts -> fst: read_messages(limit)
+lrts -> prcf: msg
+deactivate lrts
+activate prcf
+prcf -> bq: query("all_daily_transactions_"+run_time)
+activate bq
+bq --> prcf: data
+deactivate bq
+prcf -> bq: write(feature_engineering(data),"prepared_daily_transactions_"+data_from(run_time))
+activate bq
+prcf -> fst: delete(key)
+prcf -> nwcf: pub:data_prepared(data_date)
+deactivate prcf
+deactivate bq
+
+loop until prepare tasks list is empty
+    activate nwcf
+    nwcf -> fst: query(prepare_tasks)
+    fst --> nwcf: tasks
+    nwcf -> lrts: enqueue(msg)
+    activate lrts
+    lrts -> fst: write(msg,timestamp)
+    lrts -> lrts: wait
+    lrts -> fst: read_messages(limit)
+    lrts -> nwcf: msg
+    deactivate lrts
+end
+nwcf -> bq: query("prepared_daily_transactions_"+data_date)
+activate bq
+bq --> nwcf: data
+deactivate bq
+nwcf -> bq: write(new_customers_tx(data),"prepared_new_customers_daily_transactions_"+data_date)
+activate bq
+nwcf -> prtxs: pub:predict_transactions(data_date)
+deactivate nwcf
+deactivate bq
+activate prtxs
+prtxs -> automl: check_model(automl_model)
+alt not running
+activate automl
+prtxs -> automl: start_model(autml_model)
+automl --> prtxs: long_running_task
+prtxs -> lrts: enqueue(long_running_task)
+deactivate prtxs
+activate lrts
+loop while not running
+lrts -> automl: check_long_running_task(automl_model)
+automl --> lrts: status
+end
+lrts -> prtxs: pub:predict_transactions(data_date,forwarded)
+activate prtxs
+deactivate lrts
+end
+prtxs -> bq: query_num_rows("prepared_new_customers_daily_transactions_"+data_date)
+activate bq
+bq --> prtxs: num_rows
+prtxs -> bq: delete_table("predictions_"+data_date)
+deactivate bq
+loop while num_rows > chunk_size
+    prtxs -> bq: query("prepared_new_customers_daily_transactions_"+data_date, start, start+chunk_size)
+    bq --> prtxs: data_chunk
+    deactivate bq
+    prtxs->prtxs: pub:predict_transactions(data_chunk,start_index,end_index)
+    prtxs -> lrts: enqueue(msg)
+    activate lrts
+end
+deactivate prtxs
+
+
+lrts -> fst: write(msg,timestamp)
+lrts -> lrts: wait
+lrts -> fst: read_messages(limit)
+lrts -> prtxs: msg
+deactivate lrts
+activate prtxs
+loop while row in data_chunk
+        prtxs -> prtx: pub:predict_transaction(row)
+        activate prtx
+end
+
+deactivate prtxs
+prtx -> automl: predict(row)
+automl-->prtx: prediction
+prtx -> bq: stream_write(apply_formula(prediction), "predictions_"+row[date])
+deactivate prtx

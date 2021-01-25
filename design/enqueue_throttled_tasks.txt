@@ -1,0 +1,13 @@
+title Throttling & Long Running Tasks: Enqueue Throttled Task
+
+participant client as c
+participant task_writter as tw
+participant Firestore as fst
+
+
+c -> tw: pub:enqueue_task(operation_name="Delayed Forwarding", min_delay)
+tw -> fst: write(msg,expiration_timestamp=now+min_delay, last_update)
+activate tw
+deactivate tw
+
+

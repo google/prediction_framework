@@ -1,0 +1,45 @@
+title Throttling & Long Running Tasks: Poll Long Running Task
+
+participant client as c
+participant scheduler as sch
+participant task_poller as tp
+participant Firestore as fst
+participant APIx as apix
+
+
+
+sch -> tp: it_is_polling_tasks_time
+activate tp
+tp ->  fst: read(batch_size)
+activate fst
+fst --> tp: msgs
+deactivate fst
+loop for each msg in msgs
+    alt msg expiration_timestamp not due
+        note right of tp
+            msg.body.client_class_module
+            msg.body.client_class
+            msg.body.client_params
+        end note
+
+        tp -> apix: task_status()
+        activate apix
+        apix --> tp: status
+        deactivate apix
+        alt status not completed
+            tp -> fst: update(msg,last_update)
+        else status completed
+            tp -> c: pub:msg.success_topic(msg.payload)
+            tp -> fst: delete(msg)
+        end
+    else msg expired
+        tp -> fst: delete(msg)
+        tp -> c: pub:msg.error_topic(msg.payload)
+    end
+
+
+end
+
+
+
+

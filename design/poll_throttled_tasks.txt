@@ -1,0 +1,25 @@
+title Throttling & Long Running Tasks: Poll Throttled Task
+
+participant client as c
+participant scheduler as sch
+participant task_poller as tp
+participant Firestore as fst
+
+
+sch -> tp: it_is_polling_tasks_time
+activate tp
+tp ->  fst: read(batch_size)
+activate fst
+fst --> tp: msgs
+deactivate fst
+loop for each msg in msgs
+    alt msg expiration_timestamp >=now
+        tp -> c: pub:msg.success_topic(msg.payload)
+        tp -> fst: delete(msg)
+    else expiration_timestamp < now
+        tp -> fst: update(msg,last_update=now)
+    end
+end
+
+
+

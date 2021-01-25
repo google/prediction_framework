@@ -1,0 +1,24 @@
+# This could be an example of the features used for training the data, hence to
+# be used for preparing the transactions before sendind them to predict.
+# No header needed since they will be uploaded from the custom_deploy script
+# An example of use could be the average price per unit per product category,
+# to calculate whether a product is over the average of the category or not
+#
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+#
+# cat170025,g,1.9509090909090909
+# cat180024,g,10
+# cat190009,g,3.8174402730375325

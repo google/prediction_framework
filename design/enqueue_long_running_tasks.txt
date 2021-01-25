@@ -1,0 +1,12 @@
+title Throttling & Long Running Tasks: Enqueue Long Running Task
+
+participant client as c
+participant task_writter as tw
+participant Firestore as fst
+
+
+
+c -> tw: pub:enqueue_task(client_class_module,client_class,client_params)
+tw -> fst: write(msg,expiration_timestamp=now + config.max_wait, last_update)
+activate tw
+deactivate tw
