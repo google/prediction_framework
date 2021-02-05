@@ -1,6 +1,6 @@
 """This module builds the query to extract the relevant customer transactions.
 
-It is used by extract_new_customers_daily_transactions cloud function to extract
+It is used by extract_new_customers__transactions cloud function to extract
 the relevant customer transactions. Here it's possible to filter
 new customers only, repeating customers only or all customer transactions.
 
@@ -27,7 +27,7 @@ def hook_get_load_data_query(table: str, current_date: str,
 
   Args:
     table: A string representing the full path of the BQ table where the
-      transactions are located. This table is the prepared daily transactions
+      transactions are located. This table is the prepared periodic transactions
       table which contains a single line per customer.
     current_date: A string in YYYYMMDD format representing the date to process.
       This will be appended to the suffix of the table.
@@ -63,7 +63,7 @@ def hook_get_load_data_query(table: str, current_date: str,
 
 
 def hook_get_bq_schema() -> str:
-  """Returns the schema of the daily transactions table to be written in BQ.
+  """Returns the schema of the periodic transactions table to be written in BQ.
 
   It's possible just to define those fields which type won't be autodetected.
 

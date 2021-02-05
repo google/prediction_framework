@@ -27,7 +27,7 @@ TOPIC_NAME=$PREDICT_TRANSACTIONS_TOPIC
 gcloud config set project "$DEFAULT_GCP_PROJECT"
 gcloud pubsub topics publish "$TOPIC_NAME" \
   --message '{
-   "bq_input_to_predict_table":"test.ltv_ml.prepared_new_customers_daily_transactions",
+   "bq_input_to_predict_table":"test.ltv_ml.prepared_new_customers_periodic_transactions",
    "bq_output_table":"test.ltv_ml.predictions",
    "date":"20200731"
 }'

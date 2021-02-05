@@ -1,6 +1,6 @@
 """This module is where the data is prepared for prediction.
 
-It is used by prepare_daily_transactions cloud function to prepare each
+It is used by prepare_transactions cloud function to prepare each
 transaction in order to be ready for prediction.
 The code here must be pretty similar to the feature engineering code used for
 the model training phase.
@@ -28,7 +28,7 @@ import pandas as pd
 
 
 def hook_get_bq_schema() -> str:
-  """Returns the schema for the prepared_daily_transactions table.
+  """Returns the schema for the prepared_periodic_transactions table.
 
   Best practice is to write all the fields, which pretty much will match your
   model features, but if you have many features (+100) in your model just
@@ -57,11 +57,11 @@ def hook_get_load_tx_query(table: str) -> str:
 
   It loads all customer transactions and aggreagets it into a single row, so
   they are prepared for prediction. Ideally it's loading from the table
-  BQ_LTV_ALL_DAILY_TX_TABLE with the suffix corresponding to a specific date.
+  BQ_LTV_ALL_PERIODIC_TX_TABLE with the suffix corresponding to a specific date.
 
   Args:
-    table: A string representing the full path of the BQ table where the daily
-      transactions are located. This table is the BQ_LTV_ALL_DAILY_TX_TABLE with
+    table: A string representing the full path of the BQ table where the periodic
+      transactions are located. This table is the BQ_LTV_ALL_PERIODIC_TX_TABLE with
       the suffix corresponding to a specific date. It usually has multiple lines
       per customer.
 
@@ -110,7 +110,7 @@ def hook_get_load_tx_query(table: str) -> str:
 def hook_prepare(df: pd.DataFrame, model_date: str) -> pd.DataFrame:
   """Feature processing.
 
-  Here the daily transactions of a customer are aggregated into a single line.
+  Here the periodic transactions of a customer are aggregated into a single line.
   The code must be pretty similar to the one used for the feature engineering
   phase while training the model.
 

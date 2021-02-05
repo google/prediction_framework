@@ -16,6 +16,6 @@
 # limitations under the License.
 #
 
-sh delete_sharded_tables.sh ltv_ml all_daily_transactions_ -f
+sh delete_sharded_tables.sh ltv_ml all_periodic_transactions_ -f
 sh delete_sharded_tables.sh ltv_ml prepared_ -f
 sh delete_sharded_tables.sh ltv_ml predictions_ -f

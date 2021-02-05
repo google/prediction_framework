@@ -32,7 +32,7 @@ gcloud pubsub topics publish "$TOPIC_NAME" \
    "source_topic":"test.pltv.predict_transactions",
    "error_topic":"",
    "source_payload":{
-      "bq_input_to_predict_table":"test.ltv_ml.prepared_new_customers_daily_transactions",
+      "bq_input_to_predict_table":"test.ltv_ml.prepared_new_customers_periodic_transactions",
       "bq_output_table":"test.ltv_ml.predictions",
       "date":"20200519"
    },
@@ -41,7 +41,7 @@ gcloud pubsub topics publish "$TOPIC_NAME" \
    "expiration_timestamp":"2020-07-23 18:02:01.853183+00:00",
    "success_topic":"test.pltv.predict_transactions",
    "payload":{
-      "bq_input_to_predict_table":"test.ltv_ml.prepared_new_customers_daily_transactions",
+      "bq_input_to_predict_table":"test.ltv_ml.prepared_new_customers_periodic_transactions",
       "bq_output_table":"test.ltv_ml.predictions",
       "date":"20200824"
    },

@@ -20,7 +20,7 @@ HELPERS_PATH="../../deploy/helpers.sh"
 source "$HELPERS_PATH"
 eval "$(parse_yaml $CONFIG_PATH)"
 
-TOPIC_NAME="$POLLING_DAILY_TX_TOPIC"
+TOPIC_NAME="$POLLING_PERIODIC_TX_TOPIC"
 
 gcloud config set project "$DEFAULT_GCP_PROJECT"
 gcloud pubsub topics publish "$TOPIC_NAME" \

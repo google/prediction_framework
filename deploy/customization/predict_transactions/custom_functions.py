@@ -21,7 +21,7 @@ def hook_get_load_batch_query(table: str, start_index: int,
 
   Args:
     table: A string representing the full path of the BQ table where the
-      transactions are located. This table is the prepared new customers daily
+      transactions are located. This table is the prepared new customers periodic
       transactions table which contains a single line per customer.
     start_index: An integer representing the row number where to start
       retrieving data from

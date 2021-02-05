@@ -42,11 +42,11 @@ BQ_LTV_DATASET = os.getenv('BQ_LTV_DATASET', '')
 BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_TABLES_METADATA = '{}.__TABLES__'.format(BQ_LTV_TABLE_PREFIX)
 
-BQ_LTV_ALL_DAILY_TX_TABLE_ONLY = os.getenv('BQ_LTV_ALL_DAILY_TX_TABLE', '')
-BQ_LTV_ALL_DAILY_TX_TABLE = '{}.{}'.format(
-    BQ_LTV_TABLE_PREFIX, os.getenv('BQ_LTV_ALL_DAILY_TX_TABLE', ''))
-BQ_LTV_PREPARED_DAILY_TX_TABLE = '{}.{}'.format(
-    BQ_LTV_TABLE_PREFIX, os.getenv('BQ_LTV_PREPARED_DAILY_TX_TABLE', ''))
+BQ_LTV_ALL_PERIODIC_TX_TABLE_ONLY = os.getenv('BQ_LTV_ALL_PERIODIC_TX_TABLE', '')
+BQ_LTV_ALL_PERIODIC_TX_TABLE = '{}.{}'.format(
+    BQ_LTV_TABLE_PREFIX, os.getenv('BQ_LTV_ALL_PERIODIC_TX_TABLE', ''))
+BQ_LTV_PREPARED_PERIODIC_TX_TABLE = '{}.{}'.format(
+    BQ_LTV_TABLE_PREFIX, os.getenv('BQ_LTV_PREPARED_PERIODIC_TX_TABLE', ''))
 BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE = '{}.{}'.format(
     BQ_LTV_TABLE_PREFIX, os.getenv('BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE',
                                    ''))
@@ -60,7 +60,7 @@ INBOUND_TOPIC = os.getenv('DATA_EXTRACTED_TOPIC', '')
 OUTBOUND_TOPIC = os.getenv('DATA_PREPARED_TOPIC', '')
 ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', '')
 
-DELAY_IN_SECONDS = int(os.getenv('DELAY_PREPARE_DAILY_IN_SECONDS', '120'))
+DELAY_IN_SECONDS = int(os.getenv('DELAY_PREPARE_IN_SECONDS', '120'))
 
 
 def _load_metadata(table):
@@ -328,13 +328,13 @@ def main(event: Dict[str, Any],
     _insert_into_firestore(gcp_project, fst_collection, current_date)
 
     input_bq_transactions_table_suffix = '{}_{}'.format(
-        BQ_LTV_ALL_DAILY_TX_TABLE_ONLY, current_date)
+        BQ_LTV_ALL_PERIODIC_TX_TABLE_ONLY, current_date)
 
-    input_bq_transactions_table = '{}_{}'.format(BQ_LTV_ALL_DAILY_TX_TABLE,
+    input_bq_transactions_table = '{}_{}'.format(BQ_LTV_ALL_PERIODIC_TX_TABLE,
                                                  current_date)
 
     output_bq_prepared_tx_data_table = '{}_{}'.format(
-        BQ_LTV_PREPARED_DAILY_TX_TABLE, current_date)
+        BQ_LTV_PREPARED_PERIODIC_TX_TABLE, current_date)
 
     if event.get('attributes') is not None and event.get('attributes').get(
         'forwarded') is not None:

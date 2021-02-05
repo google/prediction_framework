@@ -1,4 +1,4 @@
-"""Google Cloud function code to extract daily transactions from data source."""
+"""Google Cloud function code to extract periodic transactions from data source."""
 
 # Copyright 2020 Google LLC
 #
@@ -42,18 +42,18 @@ BQ_DATA_SOURCE_TABLES = str(os.getenv('BQ_DATA_SOURCE_TABLES',
 
 BQ_LTV_TRANSFER_PROJECT_ID = str(os.getenv('BQ_LTV_TRANSFER_PROJECT_ID', ''))
 
-BQ_LTV_DAILY_TX_TRANSFER_ID = str(os.getenv('BQ_LTV_DAILY_TX_TRANSFER_ID', ''))
+BQ_LTV_PERIODIC_TX_TRANSFER_ID = str(os.getenv('BQ_LTV_PERIODIC_TX_TRANSFER_ID', ''))
 
 BQ_LTV_TRANSFER_REGION = str(os.getenv('BQ_LTV_TRANSFER_REGION', ''))
 
-BQ_LTV_ALL_DAILY_TX_TABLE = str(os.getenv('BQ_LTV_ALL_DAILY_TX_TABLE', ''))
+BQ_LTV_ALL_PERIODIC_TX_TABLE = str(os.getenv('BQ_LTV_ALL_PERIODIC_TX_TABLE', ''))
 
 BQ_DATA_SOURCE_TX_TABLE_PREFIX = '{}.{}.{}_*'.format(BQ_DATA_SOURCE_GCP_PROJECT,
                                                      BQ_DATA_SOURCE_DATA_SET,
                                                      BQ_DATA_SOURCE_TABLES)
 
 BQ_LTV_INTERMEDIATE_TX_TABLE_PREFIX = '{}.{}.{}_*'.format(
-    BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET, BQ_LTV_ALL_DAILY_TX_TABLE)
+    BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET, BQ_LTV_ALL_PERIODIC_TX_TABLE)
 
 
 def _is_number(s):
@@ -136,7 +136,7 @@ def _check_data_source_table(data_source_project, data_source_data_set,
   return bigquery.Client().query(query).to_dataframe().reset_index(drop=True)
 
 
-def _extract_daily_transactions(transfer_project_id, transfer_id, region,
+def _extract_periodic_transactions(transfer_project_id, transfer_id, region,
                                 seconds):
   """Executes the data transfer.
 
@@ -205,12 +205,12 @@ def main(event, context):
   df = _check_data_source_table(BQ_DATA_SOURCE_GCP_PROJECT,
                                 BQ_DATA_SOURCE_DATA_SET, BQ_LTV_GCP_PROJECT,
                                 BQ_LTV_DATASET, BQ_DATA_SOURCE_TABLES,
-                                BQ_LTV_ALL_DAILY_TX_TABLE, publish_date,
+                                BQ_LTV_ALL_PERIODIC_TX_TABLE, publish_date,
                                 day_before)
 
   if not df['result'][0]:
-    _extract_daily_transactions(BQ_LTV_TRANSFER_PROJECT_ID,
-                                BQ_LTV_DAILY_TX_TRANSFER_ID,
+    _extract_periodic_transactions(BQ_LTV_TRANSFER_PROJECT_ID,
+                                BQ_LTV_PERIODIC_TX_TRANSFER_ID,
                                 BQ_LTV_TRANSFER_REGION,
                                 int(time.mktime(publish_d.timetuple())))
 

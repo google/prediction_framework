@@ -689,7 +689,7 @@ def _first_call():
   """Test the processing of an initial message."""
   msg_data = {
       'bq_input_to_predict_table':
-          'test.ltv_ml.prepared_new_customers_daily_transactions',
+          'test.ltv_ml.prepared_new_customers_periodic_transactions',
       'bq_output_table':
           'test.ltv_ml.predictions',
       'date':
@@ -708,7 +708,7 @@ def _chunk_call():
 
   msg_data = {
       'bq_input_to_predict_table':
-          'test.ltv_ml.prepared_new_customers_daily_transactions',
+          'test.ltv_ml.prepared_new_customers_periodic_transactions',
       'bq_output_table':
           'test.ltv_ml.predictions',
       'date':
@@ -735,7 +735,7 @@ def _throttled_call():
 
   msg_data = {
       'bq_input_to_predict_table':
-          'test.ltv_ml.prepared_new_customers_daily_transactions',
+          'test.ltv_ml.prepared_new_customers_periodic_transactions',
       'bq_output_table':
           'test.ltv_ml.predictions',
       'date':

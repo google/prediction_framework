@@ -1,9 +1,9 @@
-title LTV Daily Prediction
+title LTV periodic Prediction
 
 participant scheduler as sch
 participant BQ as bq
-participant tx_daily_extractor as excf
-participant prepare_daily_tx as prcf
+participant tx_periodic_extractor as excf
+participant prepare_periodic_tx as prcf
 participant extract_new_customers_tx as nwcf
 participant predict_txs as prtxs
 participant predict_tx as prtx
@@ -17,7 +17,7 @@ activate excf
 excf -> bq: data_transfer
 deactivate excf
 activate bq
-bq -> prcf: pub:daily_extract_ready(run_time)
+bq -> prcf: pub:periodic_extract_ready(run_time)
 activate prcf
 deactivate bq
 prcf -> fst: insert(key,timestamp)
@@ -30,11 +30,11 @@ lrts -> fst: read_messages(limit)
 lrts -> prcf: msg
 deactivate lrts
 activate prcf
-prcf -> bq: query("all_daily_transactions_"+run_time)
+prcf -> bq: query("all_periodic_transactions_"+run_time)
 activate bq
 bq --> prcf: data
 deactivate bq
-prcf -> bq: write(feature_engineering(data),"prepared_daily_transactions_"+data_from(run_time))
+prcf -> bq: write(feature_engineering(data),"prepared_periodic_transactions_"+data_from(run_time))
 activate bq
 prcf -> fst: delete(key)
 prcf -> nwcf: pub:data_prepared(data_date)
@@ -53,11 +53,11 @@ loop until prepare tasks list is empty
     lrts -> nwcf: msg
     deactivate lrts
 end
-nwcf -> bq: query("prepared_daily_transactions_"+data_date)
+nwcf -> bq: query("prepared_periodic_transactions_"+data_date)
 activate bq
 bq --> nwcf: data
 deactivate bq
-nwcf -> bq: write(new_customers_tx(data),"prepared_new_customers_daily_transactions_"+data_date)
+nwcf -> bq: write(new_customers_tx(data),"prepared_new_customers_periodic_transactions_"+data_date)
 activate bq
 nwcf -> prtxs: pub:predict_transactions(data_date)
 deactivate nwcf
@@ -79,13 +79,13 @@ lrts -> prtxs: pub:predict_transactions(data_date,forwarded)
 activate prtxs
 deactivate lrts
 end
-prtxs -> bq: query_num_rows("prepared_new_customers_daily_transactions_"+data_date)
+prtxs -> bq: query_num_rows("prepared_new_customers_periodic_transactions_"+data_date)
 activate bq
 bq --> prtxs: num_rows
 prtxs -> bq: delete_table("predictions_"+data_date)
 deactivate bq
 loop while num_rows > chunk_size
-    prtxs -> bq: query("prepared_new_customers_daily_transactions_"+data_date, start, start+chunk_size)
+    prtxs -> bq: query("prepared_new_customers_periodic_transactions_"+data_date, start, start+chunk_size)
     bq --> prtxs: data_chunk
     deactivate bq
     prtxs->prtxs: pub:predict_transactions(data_chunk,start_index,end_index)

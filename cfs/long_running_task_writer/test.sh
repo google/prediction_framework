@@ -36,7 +36,7 @@ gcloud pubsub topics publish "$TOPIC_NAME" \
       }
    },
    "source_payload":{
-      "bq_input_uri":"test.ltv_ml.prepared_new_customers_daily_transactions_20200710",
+      "bq_input_uri":"test.ltv_ml.prepared_new_customers_periodic_transactions_20200710",
       "bq_output_predict_prefix":"xxxxx.ltv_ml.predictions",
       "date":"20200710",
       "model_gcp_project":"test",
@@ -45,7 +45,7 @@ gcloud pubsub topics publish "$TOPIC_NAME" \
       "model_api_endpoint":"eu-automl.googleapis.com:443"
    },
    "payload":{
-      "bq_input_uri":"test.ltv_ml.prepared_new_customers_daily_transactions_20200710",
+      "bq_input_uri":"test.ltv_ml.prepared_new_customers_periodic_transactions_20200710",
       "bq_output_predict_prefix":"test.ltv_ml.predictions",
       "date":"20200710",
       "model_gcp_project":"test",

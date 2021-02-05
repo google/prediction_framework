@@ -24,7 +24,7 @@ SERVICE_ACCOUNT: 'service-account-xxx@developer.gserviceaccount.com'
 # Project for pub/sub & firestore
 DEFAULT_GCP_PROJECT: 'my_project'
 DEFAULT_GCP_REGION: 'my_region'
-# BQ settings to read the daily data from
+# BQ settings to read the periodic data from
 BQ_DATA_SOURCE_GCP_PROJECT: 'my_datasource_project'
 BQ_DATA_SOURCE_DATA_SET: 'my_data_set'
 BQ_DATA_SOURCE_TABLES: 'just_table_name'
@@ -67,8 +67,8 @@ MAX_PREDICTION_BATCH_SIZE: '500'
 # =====================================================================
 # How often the stop model will try to stop the model
 MODEL_STOPPER_POLLER_CONFIG: '0 \*/1 \* \* \*'
-# How often the process will look for available daily transaction table
-DATA_SOURCE_DAILY_TX_POLLER_CONFIG: '0 \*/1 \* \* \*'
+# How often the process will look for available periodic transaction table
+DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG: '0 \*/1 \* \* \*'
 # How often the long running task poller will pick up tasks
 LONG_RUNNING_TASKS_POLLER_CONFIG: '\*/2 \* \* \* \*'
 # Max. age for a long running task or throttled task
@@ -78,9 +78,9 @@ MAX_TASKS_PER_POLL: '10'
 # The timezone to applu to the schedulers
 TIMEZONE: 'Europe/Madrid'
 # Minimum waiting time for prepare messages to wait in the throttling system
-DELAY_PREPARE_DAILY_IN_SECONDS: '60'
+DELAY_PREPARE_IN_SECONDS: '60'
 # Minimum waiting time for extract new customers  messages to wait in the throttling system
-DELAY_EXTRACT_NEW_CUSTOMERS_DAILY_IN_SECONDS: '60'
+DELAY_EXTRACT_NEW_CUSTOMERS_IN_SECONDS: '60'
 # Minimum waiting time for predict transactions messages to wait in the throttling system
 DELAY_PREDICT_TRANSACTIONS_IN_SECONDS: '60'
 # Minimum minutes without prediction activity in firestore database, before stopping the model
@@ -93,18 +93,18 @@ STOP_MODEL_WAITING_MINUTES: '30'
 
 # Automatically filled settings on every deployment
 BQ_LTV_TRANSFER_PROJECT_ID: '988912752389'
-BQ_LTV_DAILY_TX_TRANSFER_ID: '5f8f8636-0000-2a63-8b5c-3c286d38a9b2'
+BQ_LTV_PERIODIC_TX_TRANSFER_ID: '5f8f8636-0000-2a63-8b5c-3c286d38a9b2'
 
 # BQ LTV tables: BEST DO NOT MODIFY
-BQ_LTV_ALL_DAILY_TX_TABLE: 'all_daily_transactions'
-BQ_LTV_PREPARED_DAILY_TX_TABLE: 'prepared_daily_transactions'
-BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE: 'prepared_new_customers_daily_transactions'
+BQ_LTV_ALL_PERIODIC_TX_TABLE: 'all_periodic_transactions'
+BQ_LTV_PREPARED_PERIODIC_TX_TABLE: 'prepared_periodic_transactions'
+BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE: 'prepared_new_customers_periodic_transactions'
 BQ_LTV_PREDICTIONS_TABLE: 'predictions'
 BQ_LTV_METADATA_TABLE: 'metadata'
 BQ_LTV_TRAINING_DATA_FEATURES_TABLE: 'training_data_features'
 
 # Cloud Pub/Sub settings (It will be automatically prefixed by DEPLOYMENT_NAME.SOLUTION_PREFIX)
-POLLING_DAILY_TX_TOPIC: 'food.pltv.it_is_polling_tx_time'
+POLLING_PERIODIC_TX_TOPIC: 'food.pltv.it_is_polling_tx_time'
 POLLING_LONG_RUNNING_TASKS_TOPIC: 'my_deployment.pltv.food.pltv.it_is_polling_tasks_time'
 THROTTLER_TOPIC: 'food.pltv.throttle'
 DATA_EXTRACTED_TOPIC: 'my_deployment.pltv.food.pltv.enqueue_task'
@@ -115,7 +115,7 @@ ENQUEUE_TASK_TOPIC: 'food.pltv.enqueue_task'
 STOP_MODEL_TOPIC: 'food.pltv.it_is_stop_model_time'
 
 #Firestore prefixes
-FST_PREPARE_COLLECTION: 'prepare_daily_tx_tracking'
+FST_PREPARE_COLLECTION: 'prepare_periodic_tx_tracking'
 FST_PREDICT_COLLECTION: 'prediction_tracking'
 FST_PREDICT_UNIT_COLLECTION: 'unitary_prediction_tracking'
 FST_LONG_RUNNING_TASKS_COLLECTION: 'long_running_tasks'

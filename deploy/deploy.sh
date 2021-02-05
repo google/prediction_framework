@@ -133,17 +133,17 @@ function create_schedulers {
           exit -1
       fi
     fi
-    SC2=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_daily_transactions_poller \
-    --schedule "${DATA_SOURCE_DAILY_TX_POLLER_CONFIG//\\/}" \
+    SC2=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_periodic_transactions_poller \
+    --schedule "${DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG//\\/}" \
     --time-zone "$TIMEZONE" \
-    --topic "$POLLING_DAILY_TX_TOPIC" \
+    --topic "$POLLING_PERIODIC_TX_TOPIC" \
     --message-body "It's Poll Tx Time!" \
     --format "none")
     ERROR=$(echo "$SC2" | grep -Po "error")
     if [[ "$ERROR" == "error" ]]; then
       EXISTS=$(echo "$SC2" | grep -Po "exists")
       if [[ "$EXISTS" == "exists" ]]; then
-          echo "INFO: Daily tx scheduler already exists."
+          echo "INFO: periodic tx scheduler already exists."
       else
           echo "$SC2"
           exit -1

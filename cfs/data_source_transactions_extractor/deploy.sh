@@ -26,9 +26,9 @@ source "$HELPERS_PATH"
 eval "$(parse_yaml $CONFIG_PATH)"
 eval "$(parse_yaml $CUSTOM_CONFIG_PATH)"
 
-INBOUND_TOPIC_NAME="$POLLING_DAILY_TX_TOPIC"
+INBOUND_TOPIC_NAME="$POLLING_PERIODIC_TX_TOPIC"
 
-SUB=$(cat $CONFIG_PATH | grep -P POLLING_DAILY_TX_TOPIC)
+SUB=$(cat $CONFIG_PATH | grep -P POLLING_PERIODIC_TX_TOPIC)
 
 PREFIX="$DEPLOYMENT_NAME.$SOLUTION_PREFIX"
 echo "$PREFIX"
@@ -37,7 +37,7 @@ echo "$SUB"
 if [[ "$SUB" == *"$PREFIX"* ]]; then
     echo "Inbound Topic already changed in config.yaml. Skipping..."
 else
-    sed -i "s/POLLING_DAILY_TX_TOPIC.*/POLLING_DAILY_TX_TOPIC: '$PREFIX.$INBOUND_TOPIC_NAME'/" "$CONFIG_PATH"
+    sed -i "s/POLLING_PERIODIC_TX_TOPIC.*/POLLING_PERIODIC_TX_TOPIC: '$PREFIX.$INBOUND_TOPIC_NAME'/" "$CONFIG_PATH"
     INBOUND_TOPIC_NAME=$PREFIX.$INBOUND_TOPIC_NAME
 fi
 
@@ -45,7 +45,7 @@ create_pubsub_topic "$INBOUND_TOPIC_NAME"
 
 CFG_FILE=$(cat $CONFIG_PATH $CUSTOM_CONFIG_PATH > ./__config.yaml)
 
-gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_data_source_transactions_daily_extractor" \
+gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_data_source_transactions_extractor" \
    --runtime python37 \
    --entry-point main \
    --trigger-resource "$INBOUND_TOPIC_NAME" \

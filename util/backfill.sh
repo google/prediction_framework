@@ -18,5 +18,5 @@
 
 pushd ../deploy/ > /dev/null
 source ./env.sh
-python ../util/backfill.py "$DEFAULT_GCP_PROJECT" "$POLLING_DAILY_TX_TOPIC" "$1" "$2"
+python ../util/backfill.py "$DEFAULT_GCP_PROJECT" "$POLLING_PERIODIC_TX_TOPIC" "$1" "$2"
 popd > /dev/null

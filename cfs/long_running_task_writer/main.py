@@ -84,8 +84,8 @@ if __name__ == '__main__':
       'operation_name': 'Delayed Forwarding',
       'delay_in_seconds': 120,
       'error_topic': '',
-      'success_topic': 'test.pltv.daily_extract_ready',
-      'source_topic': 'test.pltv.daily_extract_ready'
+      'success_topic': 'test.pltv.periodic_extract_ready',
+      'source_topic': 'test.pltv.periodic_extract_ready'
   }
 
   main(
