@@ -58,7 +58,7 @@ create_pubsub_topic "$OUTBOUND_TOPIC_NAME"
 
 CFG_FILE=$(cat $CONFIG_PATH $CUSTOM_CONFIG_PATH > ./__config.yaml)
 
-gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_extract_new_customers_daily_transactions" \
+gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_extract_new_customers_transactions" \
    --runtime python37 \
    --entry-point main \
    --trigger-resource "$INBOUND_TOPIC_NAME" \

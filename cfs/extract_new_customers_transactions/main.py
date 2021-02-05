@@ -43,9 +43,9 @@ BQ_LTV_DATASET = os.getenv('BQ_LTV_DATASET', '')
 BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_TABLES_METADATA = '{}.__TABLES__'.format(BQ_LTV_TABLE_PREFIX)
 
-BQ_LTV_PREPARED_DAILY_TX_TABLE = '{}.{}'.format(
+BQ_LTV_PREPARED_PERIODIC_TX_TABLE = '{}.{}'.format(
     BQ_LTV_TABLE_PREFIX,
-    os.getenv('BQ_LTV_PREPARED_DAILY_TX_TABLE', 'prepared_daily_transactions'))
+    os.getenv('BQ_LTV_PREPARED_PERIODIC_TX_TABLE', 'prepared_periodic_transactions'))
 
 BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE = '{}.{}'.format(
     BQ_LTV_TABLE_PREFIX, os.getenv('BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE',
@@ -65,7 +65,7 @@ OUTBOUND_TOPIC = os.getenv('PREDICT_TRANSACTIONS_TOPIC', '')
 ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', '')
 
 DELAY_IN_SECONDS = int(
-    os.getenv('DELAY_EXTRACT_NEW_CUSTOMERS_DAILY_IN_SECONDS', '-1'))
+    os.getenv('DELAY_EXTRACT_NEW_CUSTOMERS_PERIODIC_IN_SECONDS', '-1'))
 
 
 def _load_data_from_bq(table, current_date, new_customer_period):
@@ -195,14 +195,14 @@ def _throttle_message(project, msg, enqueue_topic, success_topic, error_topic,
 
 
 def _is_prepare_running(project, collection):
-  """Checks if the prepare daily transactions phase is still running.
+  """Checks if the prepare periodic transactions phase is still running.
 
   New customers calculation cannot start without getting all the history
   first.
 
   Args:
     project: The GCP project where the firestore collection is located
-    collection: The firestore collection where the prepare daily transactions
+    collection: The firestore collection where the prepare periodic transactions
       phase logs activity
 
   Returns:
@@ -252,7 +252,7 @@ def main(event, context=None):
       if not _is_prepare_running(project, fst_collection):
 
         input_bq_transactions_table = '{}_*'.format(
-            BQ_LTV_PREPARED_DAILY_TX_TABLE)
+            BQ_LTV_PREPARED_PERIODIC_TX_TABLE)
 
         output_bq_prepared_tx_data_table = '{}_{}'.format(
             OUTPUT_BQ_PREPARED_TX_DATA_TABLE_PREFIX, current_date)
