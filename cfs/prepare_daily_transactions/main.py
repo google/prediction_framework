@@ -73,7 +73,7 @@ def _load_metadata(table):
     A pandas dataframe with the content of the BQ metadata table
   """
 
-  query = """SELECT
+  query = f"""SELECT
               a.model_date AS model_date,
               b.model_name AS model_name
             FROM (
@@ -84,25 +84,23 @@ def _load_metadata(table):
                   MAX(PARSE_DATE('%E4Y%m%d',
                       model_date)) AS date
                 FROM
-                  {0}
+                  {table}
                 UNION ALL
                 SELECT
                   MAX(PARSE_DATE('%E4Y%m%d',
                       model_date)) AS date
                 FROM
-                  {0}
+                  {table}
                 WHERE
                   DATE_DIFF(CURRENT_DATE(),PARSE_DATE('%E4Y%m%d',
                       model_date), DAY) > 1
                   AND model_name IS NOT NULL ) ) AS a
             LEFT JOIN
-              {0} AS b
+              {table} AS b
             ON
               a.model_date = b.model_date
               AND b.model_date IS NOT NULL
         """
-
-  query = query.format(table)
 
   return bigquery.Client().query(query).to_dataframe().reset_index(drop=True)
 
@@ -152,9 +150,8 @@ def _check_table(meta_data_table, table):
     1 => table exists but empty
     2 => table does not exist
   """
-  query = """
-      SELECT size_bytes FROM `{0}` where  table_id = "{1}"; """
-  query = query.format(meta_data_table, table)
+  query = f"""
+      SELECT size_bytes FROM `{meta_data_table}` where  table_id = "{table}"; """
 
   job_config = bigquery.job.QueryJobConfig()
 

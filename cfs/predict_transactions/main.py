@@ -96,22 +96,21 @@ def _load_metadata(table):
     A pandas dataframe containing the metadata info
   """
 
-  query = """
+  query = f"""
       select a.model_date as model_date, b.model_name as model_name from (
         select format_date('%E4Y%m%d',min(date)) as model_date from (
-          select max(PARSE_DATE('%E4Y%m%d', model_date)) as date  FROM {0}
+          select max(PARSE_DATE('%E4Y%m%d', model_date)) as date  FROM {table}
           union all
-          SELECT max(PARSE_DATE('%E4Y%m%d', model_date)) as date FROM {0}
+          SELECT max(PARSE_DATE('%E4Y%m%d', model_date)) as date FROM {table}
             where
               DATE_DIFF(CURRENT_DATE(),
                 PARSE_DATE('%E4Y%m%d', model_date), DAY) > 1
               and model_name is not null
         )
-     ) as a left join {0} as b
+     ) as a left join {table} as b
      on a.model_date = b.model_date and b.model_date is not null
       """
 
-  query = query.format(table)
   return bigquery.Client().query(query).to_dataframe().reset_index(drop=True)
 
 
@@ -531,13 +530,12 @@ def _delete_table(table_path):
     table_arr = table_path.split('.')
     project, dataset, table = table_arr
     client = bigquery.Client()
-    query = """
-      if exists(SELECT size_bytes FROM `{0}.{1}.__TABLES__`
-        where  table_id = "{2}") then
-         drop table `{0}.{1}.{2}`;
+    query = f"""
+      if exists(SELECT size_bytes FROM `{project}.{dataset}.__TABLES__`
+        where  table_id = "{table}") then
+         drop table `{project}.{dataset}.{table}`;
       END IF;"""
 
-    query = query.format(project, dataset, table)
     _ = client.query(query).to_dataframe()  # Make an API request.
   # pylint: disable=bare-except
   except:
@@ -556,12 +554,10 @@ def _split_into_chunks(default_project, msg, chunk_size):
 
   table_name = '{}_{}'.format(msg['bq_input_to_predict_table'], msg['date'])
   client = bigquery.Client()
-  query = """
+  query = f"""
     SELECT
     count(1) as c
-    FROM {0}"""
-
-  query = query.format(table_name)
+    FROM {table_name}"""
 
   df = client.query(query).to_dataframe()  # Make an API request.
   json_obj = json.loads(df.to_json(orient='records'))
