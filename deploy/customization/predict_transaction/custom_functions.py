@@ -16,8 +16,7 @@ to write those predictions into BQ
      os.getenv('FORMULA_PREDICTION_MULTIPLIER', 0.0))
 """
 from typing import List, Dict, Any
-from google.cloud import automl_v1beta1 as automl
-
+from google.cloud.automl_v1.types import PredictResponse
 
 def hook_get_bq_schema() -> str:
   """Returns the schema of the prediction table to be written in BQ.
@@ -44,7 +43,7 @@ def hook_get_bq_schema() -> str:
 
 def hook_apply_formulas(
     original_data: Dict[str, Any],
-    predictions: automl.prediction_service.PredictResponse) -> List[Any]:
+    predictions: PredictResponse) -> List[Any]:
   """Applies as many formulas as required to the prediction values.
 
   Args:

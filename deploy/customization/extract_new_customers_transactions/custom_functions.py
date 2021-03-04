@@ -13,13 +13,12 @@ new customers only, repeating customers only or all customer transactions.
 
  Declare the module global variables here i.e
 
- FORMULA_PREDICTION_MULTIPLIER = float(
-     os.getenv('FORMULA_PREDICTION_MULTIPLIER', 0.0))
+ NEW_CUSTOMER_PERIOD = int(
+     os.getenv('NEW_CUSTOMER_PERIOD', 120))
 """
 
 
-def hook_get_load_data_query(table: str, current_date: str,
-                             new_customer_period: int) -> str:
+def hook_get_load_data_query(table: str, current_date: str) -> str:
   """Returns the query to load the customer transactions.
 
   Here it is possible to filter just new customers or other customer
@@ -31,12 +30,7 @@ def hook_get_load_data_query(table: str, current_date: str,
       table which contains a single line per customer.
     current_date: A string in YYYYMMDD format representing the date to process.
       This will be appended to the suffix of the table.
-    new_customer_period: An integer representing the number of days with no
-      transactions in order
-      to consider a customer as new, i.e: if a customer does not appear in the
-        last 365 days it will be considered as new. This value is set in the
-        config.yaml file using MODEL_NEW_CLIENT_DAYS attribute.
-
+    
   Returns:
     A string with the query.
 
@@ -57,7 +51,7 @@ def hook_get_load_data_query(table: str, current_date: str,
 
         return query.format(table, current_date, new_customer_period)
   """
-  del table, current_date, new_customer_period  # Unused by default
+  del table, current_date  # Unused by default
 
   return ""
 

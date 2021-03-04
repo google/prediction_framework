@@ -24,14 +24,15 @@ import re
 import sys
 import uuid
 
+from typing import Any, Dict, Optional
+from google.cloud.functions_v1.context import Context
 from custom_functions import hook_get_load_batch_query
-
 from google.api_core.exceptions import FailedPrecondition
 from google.cloud import automl_v1beta1
 from google.cloud import bigquery
 from google.cloud import firestore
 from google.cloud import pubsub_v1
-import google.cloud.logging
+
 import pytz
 
 MODEL_REGION = os.getenv('MODEL_REGION', '')
@@ -630,7 +631,8 @@ def _is_throttled(event):
           not None) and (event.get('attributes').get('forwarded') is not None)
 
 
-def main(event, context=None):
+def main(event: Dict[str, Any],
+         context=Optional[Context]):
   """Triggers the message processing.
 
   Args:
@@ -642,16 +644,6 @@ def main(event, context=None):
       `timestamp` field contains the publish time.
   """
   del context
-
-  # Instantiates a client
-  client = google.cloud.logging.Client()
-
-  # Retrieves a Cloud Logging handler based on the environment
-  # you're running in and integrates the handler with the
-  # Python logging module. By default this captures all logs
-  # at INFO level and higher
-  client.get_default_handler()
-  client.setup_logging()
 
   model_gcp_project = MODEL_GCP_PROJECT
   metadata_df = _load_metadata(BQ_LTV_METADATA_TABLE)

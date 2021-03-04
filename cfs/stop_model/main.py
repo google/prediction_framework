@@ -20,6 +20,8 @@ import base64
 import datetime
 import json
 import os
+from typing import Any, Dict, Optional
+from google.cloud.functions_v1.context import Context
 from custom_functions import hook_post_stop_action
 from google.cloud import automl_v1beta1
 from google.cloud import bigquery
@@ -226,7 +228,8 @@ def _stop_model(model_gcp_project, model_region, model_name,
   return execute.operation
 
 
-def main(event, context):
+def main(event: Dict[str, Any],
+         context=Optional[Context]):
   """Triggers the data processing corresponding to date in the eceived event.
 
   Args:

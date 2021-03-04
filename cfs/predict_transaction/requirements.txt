@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+functions-framework
 pyarrow>=0.4
 google-cloud-automl==1.0.1
 google-cloud-bigquery

@@ -20,9 +20,10 @@ import base64
 import datetime
 import json
 import os
+
 from typing import Any, Dict, Optional
 from google.cloud import firestore
-import google.cloud.functions.Context
+from google.cloud.functions_v1.context import Context
 import pytz
 
 COLLECTION_NAME = '{}_{}_{}'.format(
@@ -48,7 +49,7 @@ def _insert_into_firestore(project, collection, msg):
 
 
 def main(event: Dict[str, Any],
-         context=Optional[google.cloud.functions.Context]):
+         context=Optional[Context]):
   """Triggers writing a message into Firestore.
 
   Args:

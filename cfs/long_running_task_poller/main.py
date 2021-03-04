@@ -23,9 +23,10 @@ import json
 import os
 import sys
 
+from typing import Any, Dict, Optional
+from google.cloud.functions_v1.context import Context
 from google.cloud import firestore
 from google.cloud import pubsub_v1
-
 import pytz
 
 COLLECTION_NAME = '{}_{}_{}'.format(
@@ -62,8 +63,7 @@ def _send_to_error(project, task):
     project: String representing the GCP project to use
     task: JSON object to publish
   """
-  d_task = task.to_dict()
-  _send_message(project, d_task, d_task['error_topic'])
+  _send_message(project, task, task['error_topic'])
 
 
 def _send_to_success(project, task):
@@ -73,8 +73,7 @@ def _send_to_success(project, task):
     project: String representing the GCP project to use
     task: JSON object to publish
   """
-  d_task = task.to_dict()
-  _send_message(project, d_task, d_task['success_topic'])
+  _send_message(project, task, task['success_topic'])
 
 
 def _load_tasks(project,
@@ -149,7 +148,7 @@ def _process_tasks(project, collection, task_list, current_date_time):
       print(f'{task.id} => {task.to_dict()}')
 
       try:
-        _send_to_error(project, task)
+        _send_to_error(project, task.to_dict())
       finally:
         _delete_task(project, collection, task)
     # pylint: enable=bare-except
@@ -207,14 +206,14 @@ def _process_task(project, collection, task, current_date_time):
 
   d_task = task.to_dict()
   if _it_is_expired(d_task, current_date_time):
-    _send_to_error(project, task)
+    _send_to_error(project, d_task)
     _delete_task(project, collection, task)
   else:
     operation_name = d_task['operation_name']
 
     if operation_name == 'Delayed Forwarding':
       if _it_is_time(d_task, current_date_time):
-        _send_to_success(project, task)
+        _send_to_success(project, d_task)
         _delete_task(project, collection, task)
       else:
         _update_task_timestamp(project, collection, task)
@@ -228,15 +227,17 @@ def _process_task(project, collection, task, current_date_time):
       # pylint: enable=protected-access
       if op.done:
         if hasattr(op, 'response'):
-          _send_to_success(project, task)
+          d_task['operation_reponse'] = operation.response
+          _send_to_success(project, d_task)
         else:
-          _send_to_error(project, task)
+          _send_to_error(project, d_task)
         _delete_task(project, collection, task)
       else:
         _update_task_timestamp(project, collection, task)
 
 
-def main(event=None, context=None):
+def main(event: Dict[str, Any],
+         context=Optional[Context]):
   """Triggers the enqueued tasks processing.
 
   Args:

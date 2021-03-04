@@ -23,6 +23,8 @@ import os
 import sys
 import time
 
+from typing import Any, Dict, Optional
+from google.cloud.functions_v1.context import Context
 from google.api_core import datetime_helpers
 from google.cloud import bigquery
 from google.cloud import bigquery_datatransfer_v1
@@ -176,7 +178,8 @@ def _is_backfill(event):
       'backfill') is not None
 
 
-def main(event, context):
+def main(event: Dict[str, Any],
+         context=Optional[Context]):
   """Checks if the data source table is available & no extract table generated.
 
   Depending on the existence it will trigger the data transfer.

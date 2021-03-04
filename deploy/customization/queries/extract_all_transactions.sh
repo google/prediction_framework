@@ -80,3 +80,5 @@
 #
 #  )
 #  SELECT * FROM transactions;'
+
+EXTRACT_ALL_TRANSACTIONS_QUERY='Select * from `$TABLE` limit 10000;'

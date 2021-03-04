@@ -22,14 +22,13 @@ import json
 import os
 from typing import Any, Dict, Optional
 
-from absl import logging
 from custom_functions import hook_apply_formulas
 from custom_functions import hook_create_row_to_insert
 from custom_functions import hook_get_bq_schema
 from google.cloud import automl_v1beta1 as automl
 from google.cloud import bigquery
 from google.cloud import firestore
-import google.cloud.functions.Context
+from google.cloud.functions_v1.context import Context
 import pytz
 
 _DEFAULT_GCP_PROJECT = os.getenv("DEFAULT_GCP_PROJECT", "")
@@ -55,7 +54,7 @@ def _stream_write_bq(row, bq_table, schema):
   errors = client.insert_rows(table, rows_to_insert, selected_fields=schema)
 
   if errors:
-    logging.warning("Error happened: %s", str(errors))
+    print(f"Error happened: {str(errors)}")
 
 
 def _create_key(payload: Dict[str, Any]) -> str:
@@ -129,7 +128,7 @@ def _predict(payload: Dict[str, Any]):
 
 
 def main(event: Dict[str, Any],
-         context=Optional[google.cloud.functions.Context]):
+         context=Optional[Context]):
   """Triggers the prediction of a customer transaction.
 
   Args:

@@ -23,7 +23,8 @@ SOLUTION_PREFIX: 'pltv'
 SERVICE_ACCOUNT: 'service-account-xxx@developer.gserviceaccount.com'
 # Project for pub/sub & firestore
 DEFAULT_GCP_PROJECT: 'my_project'
-DEFAULT_GCP_REGION: 'my_region'
+# Type gcloud compute regions list to find out the different values
+DEFAULT_GCP_REGION: 'europe-west1'
 # BQ settings to read the periodic data from
 BQ_DATA_SOURCE_GCP_PROJECT: 'my_datasource_project'
 BQ_DATA_SOURCE_DATA_SET: 'my_data_set'
@@ -46,6 +47,8 @@ BQ_LTV_TRANSFER_REGION: 'europe'
 # =====================================================================
 # The date when the model was generated. It will be used to label metadata
 MODEL_DATE: 'YYYYMMDD'
+# Prediction type. Allowed values LIVE or BATCH
+MODEL_PREDICTION_TYPE: BATCH
 # The model name
 MODEL_NAME: 'my_model_name'
 # The project where the model exists
@@ -109,6 +112,7 @@ POLLING_LONG_RUNNING_TASKS_TOPIC: 'my_deployment.pltv.food.pltv.it_is_polling_ta
 THROTTLER_TOPIC: 'food.pltv.throttle'
 DATA_EXTRACTED_TOPIC: 'my_deployment.pltv.food.pltv.enqueue_task'
 DATA_PREPARED_TOPIC: 'food.pltv.data_prepared'
+PREDICT_TRANSACTIONS_BATCH_TOPIC: 'food.pltv.predict_transactions_batch'
 PREDICT_TRANSACTIONS_TOPIC: 'food.pltv.predict_transactions'
 PREDICT_TRANSACTION_TOPIC: 'food.pltv.predict_transaction'
 ENQUEUE_TASK_TOPIC: 'food.pltv.enqueue_task'

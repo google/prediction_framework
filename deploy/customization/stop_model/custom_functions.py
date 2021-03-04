@@ -5,7 +5,7 @@ post model stopped activity: house keeping, write data into another location...
 """
 
 from typing import Any, Dict, Optional
-import google.cloud.functions.Context
+from google.cloud.functions_v1.context import Context
 
 # Add your imports here i.e
 #
@@ -22,7 +22,7 @@ import google.cloud.functions.Context
 
 
 def hook_post_stop_action(event: Dict[str, Any],
-                          context=Optional[google.cloud.functions.Context]):
+                          context=Optional[Context]):
   """Executes after the model is stopped.
 
   The only information available at this execution moment is the pub/sub event

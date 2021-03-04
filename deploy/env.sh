@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-CONFIG_PATH="../../deploy/config.yaml"
+CONFIG_PATH="./config.yaml"
 CUSTOM_CONFIG_PATH="./customization/variables/custom_variables.yaml"
 HELPERS_PATH="./helpers.sh"
 

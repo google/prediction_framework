@@ -24,6 +24,8 @@ import sys
 from custom_functions import hook_get_bq_schema
 from custom_functions import hook_get_load_data_query
 
+from typing import Any, Dict, Optional
+from google.cloud.functions_v1.context import Context
 from google.cloud import bigquery
 from google.cloud import firestore
 from google.cloud import pubsub_v1
@@ -54,6 +56,7 @@ BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE = '{}.{}'.format(
 BQ_LTV_PREDICTIONS_TABLE_ONLY = os.getenv('BQ_LTV_PREDICTIONS_TABLE', '')
 
 MODEL_NEW_CLIENT_DAYS = os.getenv('MODEL_NEW_CLIENT_DAYS', '')
+MODEL_PREDICTION_TYPE = os.getenv('MODEL_PREDICTION_TYPE', '')
 
 OUTPUT_BQ_PREPARED_TX_DATA_TABLE_PREFIX = BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE
 
@@ -61,25 +64,38 @@ OUTPUT_BQ_PREDICTIONS_DATA_TABLE_PREFIX = '{}.{}'.format(
     BQ_LTV_TABLE_PREFIX, BQ_LTV_PREDICTIONS_TABLE_ONLY)
 
 INBOUND_TOPIC = os.getenv('DATA_PREPARED_TOPIC', '')
-OUTBOUND_TOPIC = os.getenv('PREDICT_TRANSACTIONS_TOPIC', '')
+
 ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', '')
 
 DELAY_IN_SECONDS = int(
     os.getenv('DELAY_EXTRACT_NEW_CUSTOMERS_PERIODIC_IN_SECONDS', '-1'))
 
 
-def _load_data_from_bq(table, current_date, new_customer_period):
+
+def _get_outbound_topic():
+  """Resolves the rigth outbound topic depending on the prediction strategy.
+
+  Returns:
+    The string representing the topic to send the outbound message to.
+  """  
+
+  if MODEL_PREDICTION_TYPE == 'BATCH':
+    return os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', '')
+  else:
+    return os.getenv('PREDICT_TRANSACTIONS_TOPIC', '')
+
+
+def _load_data_from_bq(table, current_date):
   """Retrieves data from BQ table correspoinding to new customers.
 
   Args:
     table: the dataframe containing the data to be written.
     current_date: the BQ table where the data must be written.
-    new_customer_period: period without activity to consider a customer as new.
 
   Returns:
     A dataframe containing the data
   """
-  query = hook_get_load_data_query(table, current_date, new_customer_period)
+  query = hook_get_load_data_query(table, current_date)
 
   job_config = bigquery.job.QueryJobConfig()
 
@@ -218,7 +234,8 @@ def _is_prepare_running(project, collection):
     return True
 
 
-def main(event, context=None):
+def main(event: Dict[str, Any],
+         context=Optional[Context]):
   """Triggers the extraction of new customer data.
 
   Args:
@@ -241,7 +258,7 @@ def main(event, context=None):
     inbound_topic = INBOUND_TOPIC
     error_topic = ''
     source_topic = inbound_topic
-    outbound_topic = OUTBOUND_TOPIC
+    outbound_topic = _get_outbound_topic()
     enqueue_topic = ENQUEUE_TASK_TOPIC
     delay = DELAY_IN_SECONDS
 

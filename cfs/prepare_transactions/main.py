@@ -29,7 +29,7 @@ from custom_functions import hook_prepare
 from google.cloud import bigquery
 from google.cloud import firestore
 from google.cloud import pubsub_v1
-import google.cloud.functions.Context
+from google.cloud.functions_v1.context import Context
 import pytz
 
 COLLECTION_NAME = '{}_{}_{}'.format(
@@ -303,7 +303,7 @@ def _remove_from_firestore(project, collection, msg):
 
 
 def main(event: Dict[str, Any],
-         context=Optional[google.cloud.functions.Context]):
+         context=Optional[Context]):
   """Triggers the data processing corresponding to date in event.
 
   Args:
