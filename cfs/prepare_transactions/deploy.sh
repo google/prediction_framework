@@ -22,16 +22,19 @@ MEMORY="2GB"
 TIMEOUT="540"
 
 source "$HELPERS_PATH"
-eval "$(parse_yaml $CONFIG_PATH)"
-eval "$(parse_yaml $CUSTOM_CONFIG_PATH)"
+eval "$(parse_yaml ""$CONFIG_PATH"")"
+eval "$(parse_yaml ""$CUSTOM_CONFIG_PATH"")"
 
 sh copy_files.sh
 
-INBOUND_TOPIC_NAME=$DATA_EXTRACTED_TOPIC
-OUTBOUND_TOPIC_NAME=$DATA_PREPARED_TOPIC
+INBOUND_TOPIC_NAME="$DATA_EXTRACTED_TOPIC"
+OUTBOUND_TOPIC_NAME="$DATA_PREPARED_TOPIC"
 
-SUB=$(cat $CONFIG_PATH |  grep -P DATA_EXTRACTED_TOPIC)
-PREFIX=$DEPLOYMENT_NAME"."$SOLUTION_PREFIX
+echo "$CONFIG_PATH"
+
+SUB="$(cat ""$CONFIG_PATH"" |  grep -P DATA_EXTRACTED_TOPIC)"
+PREFIX="$DEPLOYMENT_NAME"".""$SOLUTION_PREFIX"
+
 echo "$PREFIX"
 echo "$SUB"
 
@@ -42,7 +45,7 @@ else
     INBOUND_TOPIC_NAME=$PREFIX.$INBOUND_TOPIC_NAME
 fi
 
-SUB=$(cat $$CONFIG_PATH | grep -P PREDICT_TRANSACTION_TOPIC)
+SUB="$(cat ""$CONFIG_PATH"" |  grep -P DATA_PREPARED_TOPIC)"
 
 if [[ "$SUB" == *"$PREFIX"* ]]; then
     echo "Outbound Topic already changed in config.yaml. Skipping..."

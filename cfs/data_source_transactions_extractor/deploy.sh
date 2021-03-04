@@ -23,8 +23,8 @@ MEMORY="256MB"
 TIMEOUT="540"
 
 source "$HELPERS_PATH"
-eval "$(parse_yaml $CONFIG_PATH)"
-eval "$(parse_yaml $CUSTOM_CONFIG_PATH)"
+eval "$(parse_yaml ""$CONFIG_PATH"")"
+eval "$(parse_yaml ""$CUSTOM_CONFIG_PATH"")"
 
 INBOUND_TOPIC_NAME="$POLLING_PERIODIC_TX_TOPIC"
 

@@ -44,7 +44,7 @@ fi
 
 create_pubsub_topic "$INBOUND_TOPIC_NAME"
 
-CFG_FILE=$(cat $CONFIG_PATH $CUSTOM_CONFIG_PATH > ./__config.yaml)
+CFG_FILE=$(cat "$CONFIG_PATH" "$CUSTOM_CONFIG_PATH" > ./__config.yaml)
 
 gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_predict_transaction" \
    --runtime python37 \
