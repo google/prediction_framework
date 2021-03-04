@@ -40,7 +40,7 @@ BQ_DATA_SOURCE_GCP_PROJECT = str(os.getenv('BQ_DATA_SOURCE_GCP_PROJECT', ''))
 BQ_DATA_SOURCE_DATA_SET = str(os.getenv('BQ_DATA_SOURCE_DATA_SET', ''))
 
 BQ_DATA_SOURCE_TABLES = str(os.getenv('BQ_DATA_SOURCE_TABLES',
-                                      ''))  # 'ga_sessions_*'
+                                      ''))  # 'ga_sessions'
 
 BQ_LTV_TRANSFER_PROJECT_ID = str(os.getenv('BQ_LTV_TRANSFER_PROJECT_ID', ''))
 
