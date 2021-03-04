@@ -157,7 +157,7 @@ def _check_table(meta_data_table, table):
 
   df = bigquery.Client().query(query, job_config=job_config).to_dataframe()
 
-  if not df['size_bytes']:
+  if len(df['size_bytes']) == 0:
     return 2  # table does not exist
   else:
     if int(df['size_bytes'][0]) <= 0:
