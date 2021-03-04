@@ -55,6 +55,11 @@ function deploy_pltv_scaffolding {
     echo "Error creating BQ elements. Exiting!"
     exit -1
   fi
+  sh customization/scripts/custom_deploy.sh 
+  if [[ $? -ne 0 ]]; then
+    echo "Error running custom deployment scripts. Exiting!"
+    exit -1
+  fi
   echo "**************************************************************"
   echo "* BQ Elements Successfully Deployed.                         *"
   echo "**************************************************************"
