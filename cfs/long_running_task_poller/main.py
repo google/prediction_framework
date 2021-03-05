@@ -27,6 +27,7 @@ from typing import Any, Dict, Optional
 from google.cloud.functions_v1.context import Context
 from google.cloud import firestore
 from google.cloud import pubsub_v1
+from google.protobuf import json_format
 import pytz
 
 COLLECTION_NAME = '{}_{}_{}'.format(
@@ -227,7 +228,8 @@ def _process_task(project, collection, task, current_date_time):
       # pylint: enable=protected-access
       if op.done:
         if hasattr(op, 'response'):
-          d_task['payload']['operation_response'] = operation.response
+          d_task['payload']['operation_response'] = json_format.MessageToDict(
+            operation.response)
           _send_to_success(project, d_task)
         else:
           _send_to_error(project, d_task)
