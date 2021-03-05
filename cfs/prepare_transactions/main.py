@@ -115,11 +115,6 @@ def _write_to_bigquery(df, table_name):
 
   dataframe = df
 
-  col_list = list(dataframe)
-
-  dataframe = df[col_list]
-  dataframe = dataframe.drop(columns={'mobileDeviceBranding'})
-
   client = bigquery.Client()
 
   job_config = bigquery.LoadJobConfig()
