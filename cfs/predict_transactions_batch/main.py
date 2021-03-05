@@ -316,7 +316,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
   else:
     print(f"Throttling: {msg['date']}")
     
-    _throttle_message(gcp_project, msg, enqueue_topic, success_topic,
+    _throttle_message(gcp_project, msg, enqueue_topic, source_topic,
                       error_topic, success_topic, delay_in_seconds)
 
 
