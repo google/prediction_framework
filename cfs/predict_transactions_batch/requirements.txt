@@ -17,5 +17,7 @@ google.cloud.logging
 google-cloud-automl==1.0.1
 google-cloud-pubsub
 google-cloud-bigquery
+google-cloud-bigquery-storage
 google-cloud-firestore
 pandas
+pyarrow

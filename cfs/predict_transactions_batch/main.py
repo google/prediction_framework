@@ -23,6 +23,8 @@ import os
 import re
 import sys
 import uuid
+# import pandas as pd
+# import numpy as np
 
 from typing import Any, Dict, Optional
 from google.cloud.functions_v1.context import Context
@@ -32,33 +34,34 @@ from google.cloud import firestore
 from google.cloud import pubsub_v1
 import pytz
 
-MODEL_REGION = os.getenv('MODEL_REGION', '')
-MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', '')
-MODEL_GCP_PROJECT = os.getenv('MODEL_GCP_PROJECT', '')
+
+MODEL_REGION = os.getenv('MODEL_REGION', 'eu')
+MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', 'eu-automl.googleapis.com:443')
+MODEL_GCP_PROJECT = os.getenv('MODEL_GCP_PROJECT', 'ltv-framework')
 
 CLIENT_CLASS_MODULE = 'google.cloud.automl_v1beta1'
 CLIENT_CLASS = 'AutoMlClient'
 
-DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
+DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', 'ltv-framework')
 
-BQ_LTV_GCP_PROJECT = os.getenv('BQ_LTV_GCP_PROJECT', '')
-BQ_LTV_DATASET = os.getenv('BQ_LTV_DATASET', '')
+BQ_LTV_GCP_PROJECT = os.getenv('BQ_LTV_GCP_PROJECT', 'ltv-framework')
+BQ_LTV_DATASET = os.getenv('BQ_LTV_DATASET', 'ltv_jaimemm')
 
-ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', '')
-PREDICT_TRANSACTION_TOPIC = os.getenv('PREDICT_TRANSACTION_TOPIC', '')
-PREDICT_TRANSACTIONS_BATCH_TOPIC = os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', '')
+ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', 'pltv_fwk.jaimemm_tests.enqueue_task')
+PREDICT_TRANSACTIONS_BATCH_TOPIC = os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', 'pltv_fwk.jaimemm_tests.predict_transactions_batch')
 PREDICTION_ERROR_HANDLER_TOPIC = os.getenv('PREDICTION_ERROR_HANDLER_TOPIC', '')
+COPY_BATCH_PREDICTIONS_TOPIC = os.getenv('COPY_BATCH_PREDICTIONS_TOPIC', '')
 
 DELAY_PREDICT_TRANSACTIONS_IN_SECONDS = int(
     os.getenv('DELAY_PREDICT_TRANSACTIONS_IN_SECONDS', '120'))
 
 BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
-                                       os.getenv('BQ_LTV_METADATA_TABLE', ''))
+                                       os.getenv('BQ_LTV_METADATA_TABLE', 'metadata'))
 
 COLLECTION_NAME = '{}_{}_{}'.format(
-    os.getenv('DEPLOYMENT_NAME', ''), os.getenv('SOLUTION_PREFIX', ''),
-    os.getenv('FST_PREDICT_TRANSACTIONS', ''))
+    os.getenv('DEPLOYMENT_NAME', 'pltv_fwk'), os.getenv('SOLUTION_PREFIX', 'jaimemm_tests'),
+    os.getenv('FST_PREDICT_COLLECTION', 'prediction_tracking'))
 
 def _insert_into_firestore(fs_project, fs_collection, processing_date):
   """Inserts a document into firestore.
@@ -248,10 +251,10 @@ def _throttle_message(project, msg, enqueue_topic, success_topic, error_topic,
   _send_message(project, new_msg, enqueue_topic)
 
 
-def _start_processing(throttled, msg, model_gcp_project, model_name,
-                      model_date, model_region, model_api_endpoint,
+def _start_processing(throttled, msg, model_gcp_project, model_region,
+                      model_name, model_date, model_api_endpoint,
                       client_class_module, client_class, enqueue_topic,
-                      success_topic, error_topic, gcp_project,
+                      success_topic, error_topic, source_topic, gcp_project,
                       fs_collection, delay_in_seconds):
   """Starts the message processing.
 
@@ -263,10 +266,10 @@ def _start_processing(throttled, msg, model_gcp_project, model_name,
       system
     msg: JSON object representing the data to process
     model_gcp_project: String representing the name of the GCP project
+    model_region: String representing the regions of the prediction model
     model_name: String representing the name of the prediction model to be
       used
     model_date: String representing the date of the model in YYYYMMDD format
-    model_region: String representing the region where the model resides
     model_api_endpoint: String representing the API endpoint of the model
       (different per region)
     client_class_module: String representing the API module containing the
@@ -279,6 +282,9 @@ def _start_processing(throttled, msg, model_gcp_project, model_name,
       the case of success in the throttling operation  
     error_topic: String representing the topic where to forward the message in
       the case of failure in the throttling operation
+    source_topic: String representing the topic where to the request was origina-
+      lly receieved
+      the case of success in the throttling operation      
     gcp_project: String representing the GCP project to use for pub/sub and
       firestore
     fs_collection: String representing the firestore collection to be used
@@ -291,15 +297,16 @@ def _start_processing(throttled, msg, model_gcp_project, model_name,
   
   if throttled:
     try:
-      operation = _predict(model_name, model_gcp_project, model_region, model_date,
+      operation = _predict(model_name, model_gcp_project, model_region,
             model_api_endpoint, gcp_project,
-            f"{msg['bq_input_to_predict_table']}_{msg['date']}",
-            msg['bq_output_table'])
+            f"bq://{msg['bq_input_to_predict_table']}_{msg['date']}",
+            f"bq://{msg['bq_output_table']}")
 
+            
       _enqueue_operation_into_task_poller(gcp_project, msg, client_class_module,
                                         client_class, model_api_endpoint,
-                                        operation.name, chunk_topic,
-                                        error_topic, chunk_topic)              
+                                        operation.name, success_topic,
+                                        error_topic, source_topic)     
             
     except Exception as err:
       print(f"""Error while processing the prediction for 
@@ -376,20 +383,23 @@ def main(event: Dict[str, Any],
   client_class_module = CLIENT_CLASS_MODULE
   client_class = CLIENT_CLASS
   enqueue_topic = ENQUEUE_TASK_TOPIC
-  success_topic = PREDICT_TRANSACTIONS_BATCH_TOPIC
+  source_topic = PREDICT_TRANSACTIONS_BATCH_TOPIC
+  success_topic = COPY_BATCH_PREDICTIONS_TOPIC
   error_topic = PREDICTION_ERROR_HANDLER_TOPIC
   fs_collection = COLLECTION_NAME
   gcp_project = DEFAULT_GCP_PROJECT
   delay_in_seconds = DELAY_PREDICT_TRANSACTIONS_IN_SECONDS
   data = base64.b64decode(event['data']).decode('utf-8')
   msg = json.loads(data)
-
+  
   try:
+
     _start_processing(
-        _is_throttled(event), msg, model_gcp_project, model_name,
-        model_region, model_api_endpoint, client_class_module,
-        client_class, enqueue_topic, success_topic, error_topic, gcp_project,
-        fs_collection, delay_in_seconds)
+        _is_throttled(event), msg, model_gcp_project, model_region, model_name,
+        model_date, model_api_endpoint, client_class_module,
+        client_class, enqueue_topic, success_topic, error_topic, source_topic,
+        gcp_project, fs_collection, delay_in_seconds)
+
   # pylint: disable=bare-except
   except:
     print('Unexpected error:', sys.exc_info()[0])
@@ -400,11 +410,11 @@ def _first_call():
   """Test the processing of an initial message."""
   msg_data = {
       'bq_input_to_predict_table':
-          'test.ltv_ml.prepared_new_customers_periodic_transactions',
+          'ltv-framework.ltv_jaimemm.prepared_new_customers_periodic_transactions',
       'bq_output_table':
-          'test.ltv_ml.predictions',
+          'ltv-framework',
       'date':
-          '20200710'
+          '20210303'
   }
 
   main(
@@ -419,19 +429,11 @@ def _throttled_call():
 
   msg_data = {
       'bq_input_to_predict_table':
-          'test.ltv_ml.prepared_new_customers_periodic_transactions',
+          'ltv-framework.ltv_jaimemm.prepared_new_customers_periodic_transactions',
       'bq_output_table':
-          'test.ltv_ml.predictions',
+          'ltv-framework',
       'date':
-          '20200824',
-      'start_index':
-          1,
-      'end_index':
-          50,
-      'batch_size':
-          1000,
-      'total':
-          21
+          '20210303'
   }
 
   main(
