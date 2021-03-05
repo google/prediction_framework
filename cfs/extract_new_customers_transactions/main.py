@@ -274,9 +274,8 @@ def main(event: Dict[str, Any],
         output_bq_prepared_tx_data_table = '{}_{}'.format(
             OUTPUT_BQ_PREPARED_TX_DATA_TABLE_PREFIX, current_date)
 
-        df = _load_data_from_bq(input_bq_transactions_table, current_date,
-                                MODEL_NEW_CLIENT_DAYS)
-        if df:
+        df = _load_data_from_bq(input_bq_transactions_table, current_date)
+        if len(df) > 0:
           _write_to_bigquery(df, output_bq_prepared_tx_data_table)
           msg = _build_message(OUTPUT_BQ_PREPARED_TX_DATA_TABLE_PREFIX,
                                OUTPUT_BQ_PREDICTIONS_DATA_TABLE_PREFIX,
