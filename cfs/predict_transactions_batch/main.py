@@ -26,7 +26,7 @@ import uuid
 
 from typing import Any, Dict, Optional
 from google.cloud.functions_v1.context import Context
-from google.cloud import automl_v1beta1
+from google.cloud import automl_v1beta1 as automl
 from google.cloud import bigquery
 from google.cloud import firestore
 from google.cloud import pubsub_v1
