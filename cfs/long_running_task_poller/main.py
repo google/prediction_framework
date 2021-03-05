@@ -228,8 +228,7 @@ def _process_task(project, collection, task, current_date_time):
       # pylint: enable=protected-access
       if op.done:
         if hasattr(op, 'response'):
-          d_task['payload']['operation_response'] = json_format.MessageToDict(
-            operation.response)
+          d_task['payload']['operation'] = json_format.MessageToDict(op)
           _send_to_success(project, d_task)
         else:
           _send_to_error(project, d_task)

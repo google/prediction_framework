@@ -50,7 +50,7 @@ def main(event: Dict[str, Any],
   data = base64.b64decode(event['data']).decode('utf-8')
   msg = json.loads(data)
 
-  output_dataset = (msg['operation_response']['metadata']
+  output_dataset = (msg['operation']['metadata']
       ['batch_predict_details']['output_info']['bigquery_output_dataset'])
   date = msg['date']
 
