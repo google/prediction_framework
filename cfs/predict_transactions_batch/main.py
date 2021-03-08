@@ -30,25 +30,24 @@ from typing import Any, Dict, Optional
 from google.cloud.functions_v1.context import Context
 from google.cloud import automl_v1beta1 as automl
 from google.cloud import bigquery
-from google.cloud import firestore
 from google.cloud import pubsub_v1
 import pytz
 
 
-MODEL_REGION = os.getenv('MODEL_REGION', 'eu')
-MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', 'eu-automl.googleapis.com:443')
-MODEL_GCP_PROJECT = os.getenv('MODEL_GCP_PROJECT', 'ltv-framework')
+MODEL_REGION = os.getenv('MODEL_REGION', '')
+MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', '')
+MODEL_GCP_PROJECT = os.getenv('MODEL_GCP_PROJECT', '')
 
 CLIENT_CLASS_MODULE = 'google.cloud.automl_v1beta1'
 CLIENT_CLASS = 'AutoMlClient'
 
-DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', 'ltv-framework')
+DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
 
-BQ_LTV_GCP_PROJECT = os.getenv('BQ_LTV_GCP_PROJECT', 'ltv-framework')
-BQ_LTV_DATASET = os.getenv('BQ_LTV_DATASET', 'ltv_jaimemm')
+BQ_LTV_GCP_PROJECT = os.getenv('BQ_LTV_GCP_PROJECT', '')
+BQ_LTV_DATASET = os.getenv('BQ_LTV_DATASET', '')
 
-ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', 'pltv_fwk.jaimemm_tests.enqueue_task')
-PREDICT_TRANSACTIONS_BATCH_TOPIC = os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', 'pltv_fwk.jaimemm_tests.predict_transactions_batch')
+ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', '')
+PREDICT_TRANSACTIONS_BATCH_TOPIC = os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', '')
 PREDICTION_ERROR_HANDLER_TOPIC = os.getenv('PREDICTION_ERROR_HANDLER_TOPIC', '')
 COPY_BATCH_PREDICTIONS_TOPIC = os.getenv('COPY_BATCH_PREDICTIONS_TOPIC', '')
 
@@ -57,30 +56,7 @@ DELAY_PREDICT_TRANSACTIONS_IN_SECONDS = int(
 
 BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
-                                       os.getenv('BQ_LTV_METADATA_TABLE', 'metadata'))
-
-COLLECTION_NAME = '{}_{}_{}'.format(
-    os.getenv('DEPLOYMENT_NAME', 'pltv_fwk'), os.getenv('SOLUTION_PREFIX', 'jaimemm_tests'),
-    os.getenv('FST_PREDICT_COLLECTION', 'prediction_tracking'))
-
-def _insert_into_firestore(fs_project, fs_collection, processing_date):
-  """Inserts a document into firestore.
-
-  It uses current date time as key.
-
-  Args:
-    fs_project: A string representing the GCP project name
-    fs_collection: A string representing the firestore collection name
-    processing_date: A string representing the date in process. Format YYYYMMDD
-  """
-  now = datetime.datetime.now(pytz.utc)
-  key = '{}_{}'.format(processing_date, now.strftime('%Y%m%d_%H%M%S'))
-  print('generating key ', key)
-
-  db = firestore.Client(project=fs_project)
-
-  db.collection(fs_collection).document(key).set(
-      {'inserted_timestamp': now})
+                                       os.getenv('BQ_LTV_METADATA_TABLE', ''))
 
 
 def _load_metadata(table):
@@ -286,21 +262,20 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
       lly receieved
       the case of success in the throttling operation      
     gcp_project: String representing the GCP project to use for pub/sub and
-      firestore
+      , firestore, etc...
     fs_collection: String representing the firestore collection to be used
     delay_in_seconds: Integer representing the minimum amount of time the
       message will be held in the throttling system
   """
   
-  print('Inserting Firestore footprint for ', msg['date'])
-  _insert_into_firestore(gcp_project, fs_collection, msg['date'])
-  
+  print('Processing ', msg['date'])
+    
   if throttled:
     try:
       operation = _predict(model_name, model_gcp_project, model_region,
             model_api_endpoint, gcp_project,
             f"bq://{msg['bq_input_to_predict_table']}_{msg['date']}",
-            f"bq://{msg['bq_output_table']}")
+            f"bq://{msg['bq_output_table'].split('.')[0]}")
 
             
       _enqueue_operation_into_task_poller(gcp_project, msg, client_class_module,
@@ -412,7 +387,7 @@ def _first_call():
       'bq_input_to_predict_table':
           'ltv-framework.ltv_jaimemm.prepared_new_customers_periodic_transactions',
       'bq_output_table':
-          'ltv-framework',
+          'ltv-framework.ltv_jaimemm.predictions',
       'date':
           '20210303'
   }
@@ -431,7 +406,7 @@ def _throttled_call():
       'bq_input_to_predict_table':
           'ltv-framework.ltv_jaimemm.prepared_new_customers_periodic_transactions',
       'bq_output_table':
-          'ltv-framework',
+          'ltv-framework.ltv_jaimemm.predictions',
       'date':
           '20210303'
   }
