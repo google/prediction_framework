@@ -74,6 +74,17 @@ def _write_to_bigquery(df, table_name):
                                                      len(table.schema),
                                                      table_name))
 
+def _delete_dataset(dataset):
+  """Deletes the dataset specified by the dataset parameter.
+
+    Args:
+      dataset:  The name of the dataset to be deleted.
+  """
+
+  client = bigquery.Client()
+  client.delete_dataset(
+    dataset, delete_contents=True, not_found_ok=True
+  )
 
 def main(event: Dict[str, Any], context=Optional[Context]):
   """Checks if the data source table is available & no extract table generated.
@@ -93,14 +104,16 @@ def main(event: Dict[str, Any], context=Optional[Context]):
   data = base64.b64decode(event["data"]).decode("utf-8")
   msg = json.loads(data)
 
-  input_table = f"""{(msg['operation']['metadata']
-                   ['batchPredictDetails']['outputInfo']['bigqueryOutputDataset']).split("://")[1]}.predictions"""
+  input_dataset = (msg['operation']['metadata']
+                   ['batchPredictDetails']['outputInfo']['bigqueryOutputDataset']).split("://")[1]
+  input_table = f"""{input_dataset}.predictions"""
 
   output_table = f"{BQ_LTV_GCP_PROJECT}.{BQ_LTV_DATASET}.{BQ_LTV_PREDICTIONS_TABLE}_{msg['date']}"
 
   query = hook_get_load_predictions_query(input_table)
   _write_to_bigquery(
       hook_apply_formulas(_load_data_from_bq(query)), output_table)
+  _delete_dataset(input_dataset)
   hook_on_completion()
 
 
