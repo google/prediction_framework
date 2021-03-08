@@ -31,7 +31,8 @@ from google.protobuf import json_format
 import pytz
 
 COLLECTION_NAME = '{}_{}_{}'.format(
-    os.getenv('DEPLOYMENT_NAME', ''), os.getenv('SOLUTION_PREFIX', ''),
+    os.getenv('DEPLOYMENT_NAME', ''),
+    os.getenv('SOLUTION_PREFIX', ''),
     os.getenv('FST_LONG_RUNNING_TASKS_COLLECTION', ''))
 
 DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
@@ -74,6 +75,7 @@ def _send_to_success(project, task):
     project: String representing the GCP project to use
     task: JSON object to publish
   """
+
   _send_message(project, task, task['success_topic'])
 
 
@@ -206,12 +208,12 @@ def _process_task(project, collection, task, current_date_time):
   """
 
   d_task = task.to_dict()
+
   if _it_is_expired(d_task, current_date_time):
     _send_to_error(project, d_task)
     _delete_task(project, collection, task)
   else:
     operation_name = d_task['operation_name']
-
     if operation_name == 'Delayed Forwarding':
       if _it_is_time(d_task, current_date_time):
         _send_to_success(project, d_task)
@@ -222,11 +224,11 @@ def _process_task(project, collection, task, current_date_time):
       module = importlib.import_module(d_task['client_class_module'])
       class_ = getattr(module, d_task['client_class'])
       instance = class_(**d_task['client_params'])
-
       # pylint: disable=protected-access
       op = instance.transport._operations_client.get_operation(operation_name)
       # pylint: enable=protected-access
       if op.done:
+
         if hasattr(op, 'response'):
           d_task['payload']['operation'] = json_format.MessageToDict(op)
           _send_to_success(project, d_task)
@@ -237,8 +239,7 @@ def _process_task(project, collection, task, current_date_time):
         _update_task_timestamp(project, collection, task)
 
 
-def main(event: Dict[str, Any],
-         context=Optional[Context]):
+def main(event: Dict[str, Any], context=Optional[Context]):
   """Triggers the enqueued tasks processing.
 
   Args:
@@ -258,7 +259,6 @@ def main(event: Dict[str, Any],
   max_tasks = MAX_TASKS_PER_POLL
 
   task_list = _load_tasks(gcp_project, collection, max_tasks, current_date_time)
-
   _process_tasks(gcp_project, collection, task_list, current_date_time)
 
 
@@ -283,5 +283,45 @@ def _create_test_data(event):
   unused_doc_ref = db.collection(COLLECTION_NAME).add(body)
 
 
-if __name__ == '__main__':
+def _create_data():
+  body = {
+      'inserted_timestamp':
+          datetime.datetime.now(),
+      'source_topic':
+          'pltv_fwk.jaimemm_tests.predict_transactions_batch',
+      'client_class':
+          'AutoMlClient',
+      'client_class_module':
+          'google.cloud.automl_v1beta1',
+      'client_params': {
+          'client_options': {
+              'api_endpoint': 'eu-automl.googleapis.com:443'
+          }
+      },
+      'success_topic':
+          'pltv_fwk.jaimemm_tests.copy_batch_predictions',
+      'operation_name':
+          'projects/988912752389/locations/eu/operations/TBL8979557532418703360',
+      'error_topic':
+          '',
+      'expiration_timestamp':
+          datetime.datetime.now(),
+      'payload': {
+          'bq_input_to_predict_table':
+              'ltv-framework.ltv_jaimemm.prepared_new_customers_periodic_transactions',
+          'bq_output_table':
+              'ltv-framework',
+          'date':
+              '20210303'
+      },
+      'updated_timestamp':
+          datetime.datetime.now()
+  }
+
+  db = firestore.Client(project=DEFAULT_GCP_PROJECT)
+  db.collection(COLLECTION_NAME).add(body)
   main(event=None, context=None)
+
+
+if __name__ == '__main__':
+  _create_data()
