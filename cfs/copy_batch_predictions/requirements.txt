@@ -14,7 +14,6 @@
 #
 
 functions-framework
-google-cloud-bigquery
+google-cloud-bigquery[pandas,pyarrow]
 google-cloud-pubsub
 google-cloud-bigquery_datatransfer
-pandas
