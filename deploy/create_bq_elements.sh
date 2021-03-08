@@ -17,7 +17,7 @@
 #
 ENV_PATH="./env.sh"
 CONFIG_PATH="./config.yaml"
-QUERY_PATH="customization/queries/extract_all_transactions.sh"
+QUERY_PATH="customization/queries/extract_all_transactions.sql"
 
 source "$ENV_PATH"
 source "$QUERY_PATH"
@@ -50,17 +50,23 @@ TABLE="$BQ_DATA_SOURCE_GCP_PROJECT"".""$BQ_DATA_SOURCE_DATA_SET"".""$BQ_DATA_SOU
 
 echo "$TABLE"
 
-QUERY=$(echo "$EXTRACT_ALL_TRANSACTIONS_QUERY" | sed -r 's,\\[trn],,g')
+
+QUERY=$(cat "$QUERY_PATH")
+QUERY=$(echo "$QUERY" | sed -r 's,\\[trn],,g')
+QUERY=$(echo "$QUERY" | sed -r ':a;N;$!ba;s/\n/ /g')
+QUERY=$(echo "$QUERY" | sed -r 's,\",\\",g')
 QUERY=$(echo "$QUERY" | sed -r 's,\$TABLE,'"$TABLE"',g')
+echo "$QUERY"
+
 #echo $QUERY
-TARGET_TABLE_TEMPLATE=$BQ_LTV_ALL_PERIODIC_TX_TABLE'_{run_time|\"%Y%m%d\"}'
+TARGET_TABLE_TEMPLATE="$BQ_LTV_ALL_PERIODIC_TX_TABLE"'_{run_time|\"%Y%m%d\"}'
 PARAMS='{"query":"'$QUERY'","destination_table_name_template" :"'$TARGET_TABLE_TEMPLATE'","write_disposition" : "WRITE_TRUNCATE"}'
 #echo $PARAMS
 S="bq mk \
 --transfer_config \
---location=$BQ_LTV_GCP_BROAD_REGION \
---project_id=$BQ_LTV_GCP_PROJECT \
---target_dataset=$BQ_LTV_DATASET \
+--location="$BQ_LTV_GCP_BROAD_REGION" \
+--project_id="$BQ_LTV_GCP_PROJECT" \
+--target_dataset="$BQ_LTV_DATASET" \
 --display_name="$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_extract_all_transactions" \
 --data_source=scheduled_query \
 --schedule='None' \
@@ -90,4 +96,3 @@ echo "$PROJECT_ID"
 echo "$TRANSFER_ID"
 sed -i "s/BQ_LTV_TRANSFER_PROJECT_ID.*/BQ_LTV_TRANSFER_PROJECT_ID: '$PROJECT_ID'/" "$CONFIG_PATH"
 sed -i "s/BQ_LTV_PERIODIC_TX_TRANSFER_ID.*/BQ_LTV_PERIODIC_TX_TRANSFER_ID: '$TRANSFER_ID'/" "$CONFIG_PATH"
-
