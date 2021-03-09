@@ -51,8 +51,8 @@ PREDICT_TRANSACTIONS_BATCH_TOPIC = os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC',
 PREDICTION_ERROR_HANDLER_TOPIC = os.getenv('PREDICTION_ERROR_HANDLER_TOPIC', '')
 COPY_BATCH_PREDICTIONS_TOPIC = os.getenv('COPY_BATCH_PREDICTIONS_TOPIC', '')
 
-DELAY_PREDICT_TRANSACTIONS_IN_SECONDS = int(
-    os.getenv('DELAY_PREDICT_TRANSACTIONS_IN_SECONDS', '120'))
+DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS = int(
+    os.getenv('DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS', '120'))
 
 BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
@@ -231,7 +231,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
                       model_name, model_date, model_api_endpoint,
                       client_class_module, client_class, enqueue_topic,
                       success_topic, error_topic, source_topic, gcp_project,
-                      fs_collection, delay_in_seconds):
+                      delay_in_seconds):
   """Starts the message processing.
 
   There're 2 kind of messages:
@@ -263,9 +263,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
       the case of success in the throttling operation      
     gcp_project: String representing the GCP project to use for pub/sub and
       , firestore, etc...
-    fs_collection: String representing the firestore collection to be used
-    delay_in_seconds: Integer representing the minimum amount of time the
-      message will be held in the throttling system
+    delay_in_seconds: Integer representing the delay time
   """
   
   print('Processing ', msg['date'])
@@ -361,9 +359,8 @@ def main(event: Dict[str, Any],
   source_topic = PREDICT_TRANSACTIONS_BATCH_TOPIC
   success_topic = COPY_BATCH_PREDICTIONS_TOPIC
   error_topic = PREDICTION_ERROR_HANDLER_TOPIC
-  fs_collection = COLLECTION_NAME
   gcp_project = DEFAULT_GCP_PROJECT
-  delay_in_seconds = DELAY_PREDICT_TRANSACTIONS_IN_SECONDS
+  delay_in_seconds = DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS
   data = base64.b64decode(event['data']).decode('utf-8')
   msg = json.loads(data)
   
@@ -373,7 +370,7 @@ def main(event: Dict[str, Any],
         _is_throttled(event), msg, model_gcp_project, model_region, model_name,
         model_date, model_api_endpoint, client_class_module,
         client_class, enqueue_topic, success_topic, error_topic, source_topic,
-        gcp_project, fs_collection, delay_in_seconds)
+        gcp_project, delay_in_seconds)
 
   # pylint: disable=bare-except
   except:
