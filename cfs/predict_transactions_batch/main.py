@@ -31,8 +31,11 @@ from google.cloud.functions_v1.context import Context
 from google.cloud import automl_v1beta1 as automl
 from google.cloud import bigquery
 from google.cloud import pubsub_v1
+from google.cloud import firestore
+
 import pytz
 
+import distributed_counters
 
 MODEL_REGION = os.getenv('MODEL_REGION', '')
 MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', '')
@@ -53,11 +56,29 @@ COPY_BATCH_PREDICTIONS_TOPIC = os.getenv('COPY_BATCH_PREDICTIONS_TOPIC', '')
 
 DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS = int(
     os.getenv('DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS', '120'))
+MAX_CONCURRENT_BATCH_PREDICT = int(
+  os.getenv('MAX_CONCURRENT_BATCH_PREDICT', '5'))    
 
 BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
                                        os.getenv('BQ_LTV_METADATA_TABLE', ''))
 
+FST_PREDICT_COLLECTION = os.getenv('FST_PREDICT_COLLECTION', '')
+COUNTER_NAME = 'concurrent_automl_batch_counter'
+COUNTER_SHARDS = 10
+
+
+# def _get_distributed_counter(gcp_project=DEFAULT_GCP_PROJECT,
+#                              collection=FST_PREDICT_COLLECTION,
+#                              counter_name=COUNTER_NAME,
+#                              shards=COUNTER_SHARDS):
+# 
+#   fs_client = firestore.Client(gcp_project)
+#   counter.init_counter(fs_client, collection_name, counter_name, shards)
+#   col = fs_client.collection(collection)
+#   doc_ref = col.document(counter_name)
+#   counter = distributed_counters.Counter()
+#   return counter
 
 def _load_metadata(table):
   """Loads the metadata info from BQ.
@@ -267,8 +288,11 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
   """
   
   print('Processing ', msg['date'])
-    
-  if throttled:
+
+  # TODO: Check counter and increase by one
+  if counter.get_count() < MAX_CONCURRENT_BATCH_PREDICT
+    counter.increment_counter(self, doc_ref)
+ 
     try:
       operation = _predict(model_name, model_gcp_project, model_region,
             model_api_endpoint, gcp_project,
@@ -345,6 +369,8 @@ def main(event: Dict[str, Any],
   """
   del context
 
+  counter = _get_distributed_counter()
+
   model_gcp_project = MODEL_GCP_PROJECT
   metadata_df = _load_metadata(BQ_LTV_METADATA_TABLE)
 
@@ -376,6 +402,22 @@ def main(event: Dict[str, Any],
   except:
     print('Unexpected error:', sys.exc_info()[0])
   # pylint: enable=bare-except
+
+@firestore.transactional
+def _increase_counter():
+  transaction = db.transaction()
+  city_ref = db.collection(u'cities').document(u'SF')
+  snapshot = city_ref.get(transaction=transaction)
+  new_population = snapshot.get(u'population') + 1
+  if new_population < 1000000:
+    transaction.update(city_ref, {
+                       u'population': new_population
+          })
+    return True
+  else:
+    return False
+
+  
 
 
 def _first_call():
@@ -417,6 +459,13 @@ def _throttled_call():
       },
       context=None)
 
+def _test_transaction():
+  result = _increase_counter()
+  if result:
+      print(u'Population updated')
+  else:
+      print(u'Sorry! Population is too big.')
 
 if __name__ == '__main__':
-  _throttled_call()
+  _test_transaction()
+  #_throttled_call()
