@@ -16,19 +16,20 @@ to write those predictions into BQ
      os.getenv('FORMULA_PREDICTION_MULTIPLIER', 0.0))
 """
 import pandas as pd
+from google.cloud import bigquery
 
 def hook_get_load_predictions_query(table: str) -> str:
   """Returns the query that loads the predictions.
 
-  The 
+  The
   they are prepared for prediction. Ideally it's loading from the table
   BQ_LTV_ALL_PERIODIC_TX_TABLE with the suffix corresponding to a specific date.
 
   Args:
-    table: A string representing the full path of the BQ table where the periodic
-      transactions are located. This table is the BQ_LTV_ALL_PERIODIC_TX_TABLE with
-      the suffix corresponding to a specific date. It usually has multiple lines
-      per customer.
+    table: A string representing the full path of the BQ table where the
+      periodic transactions are located. This table is the
+      BQ_LTV_ALL_PERIODIC_TX_TABLE with the suffix corresponding to a specific
+      date. It usually has multiple lines per customer.
 
   Returns:
     A string with the query.
@@ -45,32 +46,27 @@ def hook_get_load_predictions_query(table: str) -> str:
             FROM
                 `{table}`
             LIMIT
-                10 
+                10
             '''
   """
-  
 
-  return f'''select * from `{table}` limit 10'''
+  return f"""SELECT * FROM `{table}` LIMIT 10"""
 
 
 def hook_get_bq_schema() -> str:
-  """Returns the schema of the table with the actionable predictions 
-  
+  """Returns the schema of the table with the actionable predictions
+
   Returns:
     An array of bigquery.SchemaField
 
       Example:
 
         return [
-         bigquery.SchemaField('clientId','STRING',mode='REQUIRED')
-        ,bigquery.SchemaField('orderId','STRING',mode='REQUIRED')
-        ,bigquery.SchemaField('gclid','STRING',mode='REQUIRED')
-        ,bigquery.SchemaField('date','STRING',mode='REQUIRED')
-        ,bigquery.SchemaField('conversionValue','FLOAT64',mode='REQUIRED')
-        ,bigquery.SchemaField('conversionValue2','FLOAT64',mode='REQUIRED')
-        ,bigquery.SchemaField('conversionValue3','FLOAT64',mode='REQUIRED')
-        ,bigquery.SchemaField('conversionValue4','FLOAT64',mode='REQUIRED')
-        ,bigquery.SchemaField('conversionValue5','FLOAT64',mode='REQUIRED')
+            bigquery.SchemaField('orderId', 'STRING', mode='REQUIRED'),
+            bigquery.SchemaField('gclid', 'STRING', mode='REQUIRED'),
+            bigquery.SchemaField('date', 'STRING', mode='REQUIRED'),
+            bigquery.SchemaField('customerValue', 'FLOAT64', mode='REQUIRED'),
+            bigquery.SchemaField('conversionValue', 'FLOAT64', mode='REQUIRED')
         ]
   """
   return []
@@ -90,35 +86,37 @@ def hook_apply_formulas(predictions: pd.DataFrame) -> pd.DataFrame:
       If we use  classification and class A represents low value
       class B represents high value
 
-      real_value = predictions["customerValue"]
-      pred_a = 0.0
-      pred_b = 0.0
-      if (predictions.payload[0].tables.value.string_value == "A"):
-          pred_a = predictions.payload[0].tables.score
-          pred_b = predictions.payload[1].tables.score
-      else:
-          pred_a = predictions.payload[1].tables.score
-          pred_b = predictions.payload[0].tables.score
+      predictions['conversionValue'] = predictions.apply(
+        lambda row: apply_formula(row), axis=1)
+      predictions = predictions.drop(
+      columns=['predicted_customerBucketValue']).reset_index(drop=True)
 
-      return [apply_formula(pred_a, pred_b, real_value),
-              apply_formula2(pred_a, pred_b, real_value),
-              apply_formula3(pred_a, pred_b, real_value),
-              apply_formula4(pred_a, pred_b, real_value),
-              apply_formula5(pred_a, pred_b, real_value)]
-
+      return predictions
   """
-
   return predictions
 
 
-
+def hook_on_completion():
+  """Triggers any custom action after the result is written in to BQ"""
 
 
 # Declare the auxiliary functions here i.e
 #
-# def apply_formula(pred_a, pred_b, real_value):
+# def apply_formula(predictions):
+#
 #  multiplier = FORMULA_PREDICTION_MULTIPLIER
-#  if pred_a > pred_b:
-#      return  max(real_value*(1-pred_a)/multiplier,multiplier*real_value)
+#  pred_a = 0.0
+#  pred_b = 0.0
+#  real_value = predictions['customerValue']
+#
+#  if predictions['predicted_customerBucketValue'][0]['tables']['value'] == 'A':
+#    pred_a = predictions['predicted_customerBucketValue'][0]['tables']['score']
+#    pred_b = predictions['predicted_customerBucketValue'][1]['tables']['score']
 #  else:
-#      return  max((multiplier+pred_b)*real_value,multiplier*(1+real_value))
+#    pred_a = predictions['predicted_customerBucketValue'][1]['tables']['score']
+#    pred_b = predictions['predicted_customerBucketValue'][0]['tables']['score']
+#
+#  if pred_a > pred_b:
+#    return  max(real_value*(1-pred_a)/multiplier,multiplier*real_value)
+#  else:
+#    return  max((multiplier+pred_b)*real_value,multiplier*(1+real_value))

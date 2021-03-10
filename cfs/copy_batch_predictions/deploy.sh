@@ -26,6 +26,8 @@ source "$HELPERS_PATH"
 eval "$(parse_yaml ""$CONFIG_PATH"")"
 eval "$(parse_yaml ""$CUSTOM_CONFIG_PATH"")"
 
+sh copy_files.sh
+
 INBOUND_TOPIC_NAME="$COPY_BATCH_PREDICTIONS_TOPIC"
 
 SUB=$(cat $CONFIG_PATH | grep -P COPY_BATCH_PREDICTIONS_TOPIC)
