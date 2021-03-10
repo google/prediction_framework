@@ -77,8 +77,7 @@ LONG_RUNNING_TASKS_POLLER_CONFIG: '\*/2 \* \* \* \*'
 # Max. age for a long running task or throttled task
 DISCARD_TASKS_OLDER_THAN_HOURS: '23'
 # How many tasks to be taken at a time from the throttling/long running tasks system
-# To not fall into AutoML Batch quota issues MAX_TASKS_PER_POLL: '4'
-MAX_TASKS_PER_POLL: '4'
+MAX_TASKS_PER_POLL: '10'
 # The timezone to applu to the schedulers
 TIMEZONE: 'Europe/Madrid'
 # Minimum waiting time for prepare messages to wait in the throttling system
@@ -88,9 +87,7 @@ DELAY_EXTRACT_NEW_CUSTOMERS_IN_SECONDS: '60'
 # Minimum waiting time for predict transactions messages to wait in the throttling system
 DELAY_PREDICT_TRANSACTIONS_IN_SECONDS: '60'
 # Minimum waiting time for predict transactions batch messages to wait in the throttling system
-# To not fall into AutoML quota issues the value must be greater than the time AutoML takes to 
-# predict one table
-DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS: '360'
+DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS: '300'
 # Minimum minutes without prediction activity in firestore database, before stopping the model
 STOP_MODEL_WAITING_MINUTES: '30'
 

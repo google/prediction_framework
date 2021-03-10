@@ -38,6 +38,7 @@ COLLECTION_NAME = '{}_{}_{}'.format(
 DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
 
 MAX_TASKS_PER_POLL = int(os.getenv('MAX_TASKS_PER_POLL', '5'))
+MAX_TASKS_PER_POLL_MULTIPLIER = 10
 
 
 def _send_message(project, msg, topic):
@@ -81,7 +82,7 @@ def _send_to_success(project, task):
 
 def _load_tasks(project,
                 collection,
-                max_tasks=MAX_TASKS_PER_POLL,
+                num_tasks,
                 unused_current_date_time=None):
   """Retrieves a number of documents from the firestore collection.
 
@@ -128,19 +129,22 @@ def _update_task_timestamp(project, collection, task):
       {'updated_timestamp': datetime.datetime.now(pytz.utc)})
 
 
-def _process_tasks(project, collection, task_list, current_date_time):
+def _process_tasks(project, collection, task_list, max_tasks, current_date_time):
   """Iterates over the task_list to process each task.
 
   Args:
     project: String representing the GCP project to use
     collection: A string representing the firestore collection
     task_list: A firestore documents array to be processed
+    max_tasks: Integer representing the maximum "in window" tasks to process
     current_date_time: A datetime object representing the current date & time
   """
+  counter = 0
   for task in task_list:
     try:
-      _process_task(project, collection, task, current_date_time)
-
+      counter += _process_task(project, collection, task, current_date_time)
+      if counter >= max_tasks:
+        break
     # in this case we need to capture all the exceptions to send the task to
     # the error queue, whatever the exception. That's why bare except.
     # pylint: disable=bare-except
@@ -205,6 +209,11 @@ def _process_task(project, collection, task, current_date_time):
     collection: A string representing the firestore collection
     task: A firestore document to be processed
     current_date_time: A datetime object representing the current date & time
+  
+  Returns:
+    1 if the task was not expired and ("in window" or long running operation is done)
+    , 0 in any other case
+
   """
 
   d_task = task.to_dict()
@@ -218,6 +227,7 @@ def _process_task(project, collection, task, current_date_time):
       if _it_is_time(d_task, current_date_time):
         _send_to_success(project, d_task)
         _delete_task(project, collection, task)
+        return 1
       else:
         _update_task_timestamp(project, collection, task)
     else:
@@ -228,15 +238,16 @@ def _process_task(project, collection, task, current_date_time):
       op = instance.transport._operations_client.get_operation(operation_name)
       # pylint: enable=protected-access
       if op.done:
-
         if hasattr(op, 'response'):
           d_task['payload']['operation'] = json_format.MessageToDict(op)
           _send_to_success(project, d_task)
         else:
           _send_to_error(project, d_task)
         _delete_task(project, collection, task)
+        return 1
       else:
         _update_task_timestamp(project, collection, task)
+    return 0
 
 
 def main(event: Dict[str, Any], context=Optional[Context]):
@@ -256,10 +267,10 @@ def main(event: Dict[str, Any], context=Optional[Context]):
 
   gcp_project = DEFAULT_GCP_PROJECT
   collection = COLLECTION_NAME
-  max_tasks = MAX_TASKS_PER_POLL
+  num_tasks = MAX_TASKS_PER_POLL * MAX_TASKS_PER_POLL_MULTIPLIER
 
-  task_list = _load_tasks(gcp_project, collection, max_tasks, current_date_time)
-  _process_tasks(gcp_project, collection, task_list, current_date_time)
+  task_list = _load_tasks(gcp_project, collection, num_tasks, current_date_time)
+  _process_tasks(gcp_project, collection, task_list, MAX_TASKS_PER_POLL, current_date_time)
 
 
 def _create_test_data(event):
