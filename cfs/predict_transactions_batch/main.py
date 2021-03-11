@@ -31,11 +31,10 @@ from google.cloud.functions_v1.context import Context
 from google.cloud import automl_v1beta1 as automl
 from google.cloud import bigquery
 from google.cloud import pubsub_v1
-from google.cloud import firestore
+from google.cloud import firestore_v1 as firestore
 
 import pytz
 
-import distributed_counters
 
 MODEL_REGION = os.getenv('MODEL_REGION', '')
 MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', '')
@@ -57,14 +56,15 @@ COPY_BATCH_PREDICTIONS_TOPIC = os.getenv('COPY_BATCH_PREDICTIONS_TOPIC', '')
 DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS = int(
     os.getenv('DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS', '120'))
 MAX_CONCURRENT_BATCH_PREDICT = int(
-  os.getenv('MAX_CONCURRENT_BATCH_PREDICT', '5'))    
+  os.getenv('MAX_CONCURRENT_BATCH_PREDICT', '5'))
 
 BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
                                        os.getenv('BQ_LTV_METADATA_TABLE', ''))
 
 FST_PREDICT_COLLECTION = os.getenv('FST_PREDICT_COLLECTION', '')
-COUNTER_NAME = 'concurrent_automl_batch_counter'
+COUNTER_DOCUMENT = 'concurrent_document'
+COUNTER_FIELD = 'concurrent_count'
 COUNTER_SHARDS = 10
 
 
@@ -72,7 +72,7 @@ COUNTER_SHARDS = 10
 #                              collection=FST_PREDICT_COLLECTION,
 #                              counter_name=COUNTER_NAME,
 #                              shards=COUNTER_SHARDS):
-# 
+#
 #   fs_client = firestore.Client(gcp_project)
 #   counter.init_counter(fs_client, collection_name, counter_name, shards)
 #   col = fs_client.collection(collection)
@@ -146,7 +146,7 @@ def _send_message_task_enqueue(project, msg):
 
 def _build_task_message(data, client_class_module, client_class,
                         model_api_endpoint, operation_name, success_topic,
-                        error_topic, source_topic):
+                        error_topic, source_topic, concurrent_slot_document):
   """Creates a JSON object to be sent to the long running operations system.
 
   The message contains all the details so the long running operation system
@@ -167,6 +167,8 @@ def _build_task_message(data, client_class_module, client_class,
       case of failure must be sent to
     source_topic: A string representing the topic from where the initial message
       was received
+    concurrent_slot_document: Firestore document where concurrent slots are
+      accounted for.
 
   Returns:
     The incoming msg JSON object containing all the input parameters together.
@@ -182,14 +184,16 @@ def _build_task_message(data, client_class_module, client_class,
       'payload': data,
       'error_topic': error_topic,
       'success_topic': success_topic,
-      'source_topic': source_topic
+      'source_topic': source_topic,
+      'concurrent_slot_document': concurrent_slot_document,
   }
 
 
 def _enqueue_operation_into_task_poller(gcp_project, data, client_class_module,
                                         client_class, model_api_endpoint,
                                         operation_name, success_topic,
-                                        error_topic, source_topic):
+                                        error_topic, source_topic,
+                                        concurrent_slot_document):
   """It sends a message to the long running operations system.
 
   The long running operation system will forward the message back once it's done
@@ -210,10 +214,12 @@ def _enqueue_operation_into_task_poller(gcp_project, data, client_class_module,
       case of failure must be sent to
     source_topic: A string representing the topic from where the initial message
       was received
+    concurrent_slot_document: Firestore document where concurrent slots are
+      accounted for.
   """
   msg = _build_task_message(data, client_class_module, client_class,
                             model_api_endpoint, operation_name, success_topic,
-                            error_topic, source_topic)
+                            error_topic, source_topic, concurrent_slot_document)
 
   _send_message_task_enqueue(gcp_project, msg)
 
@@ -257,7 +263,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
 
   There're 2 kind of messages:
     - thottled | non throttled
-    
+
   Args:
     throttled: Boolean indicating if the message comes from the throttling
       system
@@ -276,43 +282,48 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
     enqueue_topic: String representing the topic where the throttlign system
       listens to
     success_topic: String representing the topic where to forward the message in
-      the case of success in the throttling operation  
+      the case of success in the throttling operation
     error_topic: String representing the topic where to forward the message in
       the case of failure in the throttling operation
     source_topic: String representing the topic where to the request was origina-
       lly receieved
-      the case of success in the throttling operation      
+      the case of success in the throttling operation
     gcp_project: String representing the GCP project to use for pub/sub and
       , firestore, etc...
     delay_in_seconds: Integer representing the delay time
   """
-  
+
   print('Processing ', msg['date'])
 
-  # TODO: Check counter and increase by one
-  if counter.get_count() < MAX_CONCURRENT_BATCH_PREDICT
-    counter.increment_counter(self, doc_ref)
- 
+  db = firestore.Client()
+  transaction = db.transaction()
+
+  if _obtain_batch_predict_slot(transaction, db):
+
     try:
       operation = _predict(model_name, model_gcp_project, model_region,
             model_api_endpoint, gcp_project,
             f"bq://{msg['bq_input_to_predict_table']}_{msg['date']}",
             f"bq://{msg['bq_output_table'].split('.')[0]}")
 
-            
+
       _enqueue_operation_into_task_poller(gcp_project, msg, client_class_module,
                                         client_class, model_api_endpoint,
                                         operation.name, success_topic,
-                                        error_topic, source_topic)     
-            
+                                        error_topic, source_topic,
+                                        firestore.document.DocumentReference(
+                                          FST_PREDICT_COLLECTION,
+                                          COUNTER_DOCUMENT).path
+                                        )
+
     except Exception as err:
-      print(f"""Error while processing the prediction for 
+      print(f"""Error while processing the prediction for
       {msg['bq_input_to_predict_table']}_{msg['date']}
        {err}""")
 
   else:
     print(f"Throttling: {msg['date']}")
-    
+
     _throttle_message(gcp_project, msg, enqueue_topic, source_topic,
                       error_topic, success_topic, delay_in_seconds)
 
@@ -389,7 +400,7 @@ def main(event: Dict[str, Any],
   delay_in_seconds = DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS
   data = base64.b64decode(event['data']).decode('utf-8')
   msg = json.loads(data)
-  
+
   try:
 
     _start_processing(
@@ -404,20 +415,19 @@ def main(event: Dict[str, Any],
   # pylint: enable=bare-except
 
 @firestore.transactional
-def _increase_counter():
-  transaction = db.transaction()
-  city_ref = db.collection(u'cities').document(u'SF')
-  snapshot = city_ref.get(transaction=transaction)
-  new_population = snapshot.get(u'population') + 1
-  if new_population < 1000000:
-    transaction.update(city_ref, {
-                       u'population': new_population
+def _obtain_batch_predict_slot(transaction, db):
+  concurrent_ref = db.collection(FST_PREDICT_COLLECTION).document(COUNTER_DOCUMENT)
+  snapshot = concurrent_ref.get(transaction=transaction)
+  new_count = snapshot.get(COUNTER_FIELD) + 1
+  if new_count < MAX_CONCURRENT_BATCH_PREDICT:
+    transaction.update(concurrent_ref, {
+                       COUNTER_FIELD: new_count
           })
     return True
   else:
     return False
 
-  
+
 
 
 def _first_call():
@@ -459,13 +469,6 @@ def _throttled_call():
       },
       context=None)
 
-def _test_transaction():
-  result = _increase_counter()
-  if result:
-      print(u'Population updated')
-  else:
-      print(u'Sorry! Population is too big.')
 
 if __name__ == '__main__':
-  _test_transaction()
-  #_throttled_call()
+  _throttled_call()
