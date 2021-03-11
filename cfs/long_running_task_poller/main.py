@@ -25,7 +25,7 @@ import sys
 
 from typing import Any, Dict, Optional
 from google.cloud.functions_v1.context import Context
-from google.cloud import firestore
+from google.cloud import firestore_v1 as firestore
 from google.cloud import pubsub_v1
 from google.protobuf import json_format
 import pytz
@@ -193,6 +193,13 @@ def _it_is_time(task, current_date_time):
   return task['expiration_timestamp'] <= current_date_time
 
 
+@firestore.transactional
+def _release_concurrent_slot(transaction, doc_ref):
+  snapshot = doc_ref.get(transaction=transaction)
+  new_count = snapshot.get('concurrent_count') - 1
+  transaction.update(concurrent_ref, {'concurrent_count': new_count}
+
+
 def _process_task(project, collection, task, current_date_time):
   """Checks if it's time to process the task.
 
@@ -209,7 +216,7 @@ def _process_task(project, collection, task, current_date_time):
     collection: A string representing the firestore collection
     task: A firestore document to be processed
     current_date_time: A datetime object representing the current date & time
-  
+
   Returns:
     1 if the task was not expired and ("in window" or long running operation is done)
     , 0 in any other case
@@ -238,6 +245,13 @@ def _process_task(project, collection, task, current_date_time):
       op = instance.transport._operations_client.get_operation(operation_name)
       # pylint: enable=protected-access
       if op.done:
+        concurrent_slot_document = d_task.get('concurrent_slot_document', None)
+        if concurrent_slot_document:
+          db = firestore.Client()
+          transaction = db.transaction()
+          doc_ref = firestore.document.DocumentReference(
+            *concurrent_slot_document.split('/'))
+          _release_concurrent_slot(transaction, doc_ref)
         if hasattr(op, 'response'):
           d_task['payload']['operation'] = json_format.MessageToDict(op)
           _send_to_success(project, d_task)
