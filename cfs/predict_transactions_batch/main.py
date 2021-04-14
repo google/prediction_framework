@@ -306,7 +306,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
             f"bq://{msg['bq_input_to_predict_table']}_{msg['date']}",
             f"bq://{msg['bq_output_table'].split('.')[0]}")
 
-
+      
       _enqueue_operation_into_task_poller(gcp_project, msg, client_class_module,
                                         client_class, model_api_endpoint,
                                         operation.name, success_topic,
@@ -315,7 +315,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
                                           FST_PREDICT_COLLECTION,
                                           COUNTER_DOCUMENT).path
                                         )
-
+      
     except Exception as err:
       print(f"""Error while processing the prediction for
       {msg['bq_input_to_predict_table']}_{msg['date']}
@@ -380,7 +380,7 @@ def main(event: Dict[str, Any],
   """
   del context
 
-  counter = _get_distributed_counter()
+  # counter = _get_distributed_counter()
 
   model_gcp_project = MODEL_GCP_PROJECT
   metadata_df = _load_metadata(BQ_LTV_METADATA_TABLE)
@@ -416,15 +416,27 @@ def main(event: Dict[str, Any],
 
 @firestore.transactional
 def _obtain_batch_predict_slot(transaction, db):
+
+  try:
+    db.collection(FST_PREDICT_COLLECTION).document(COUNTER_DOCUMENT).create({COUNTER_FIELD: 0})
+  except Exception:
+    pass
   concurrent_ref = db.collection(FST_PREDICT_COLLECTION).document(COUNTER_DOCUMENT)
   snapshot = concurrent_ref.get(transaction=transaction)
-  new_count = snapshot.get(COUNTER_FIELD) + 1
-  if new_count < MAX_CONCURRENT_BATCH_PREDICT:
+  
+  print(snapshot.get(COUNTER_FIELD))
+  if snapshot.get(COUNTER_FIELD):
+    new_count = snapshot.get(COUNTER_FIELD) + 1
+  else:
+    new_count = 1
+  if new_count <= MAX_CONCURRENT_BATCH_PREDICT:
     transaction.update(concurrent_ref, {
                        COUNTER_FIELD: new_count
           })
+  
     return True
   else:
+  
     return False
 
 

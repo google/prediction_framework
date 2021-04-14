@@ -82,7 +82,7 @@ def _send_to_success(project, task):
 
 def _load_tasks(project,
                 collection,
-                num_tasks,
+                max_tasks,
                 unused_current_date_time=None):
   """Retrieves a number of documents from the firestore collection.
 
@@ -197,7 +197,7 @@ def _it_is_time(task, current_date_time):
 def _release_concurrent_slot(transaction, doc_ref):
   snapshot = doc_ref.get(transaction=transaction)
   new_count = snapshot.get('concurrent_count') - 1
-  transaction.update(concurrent_ref, {'concurrent_count': new_count}
+  transaction.update(concurrent_ref, {'concurrent_count': new_count})
 
 
 def _process_task(project, collection, task, current_date_time):
