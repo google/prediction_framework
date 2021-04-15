@@ -103,9 +103,27 @@ def _load_tasks(project,
       'expiration_timestamp',
       direction=firestore.Query.ASCENDING).limit(max_tasks).stream()
 
+def _decrease_counter(fs_db, d_task):
+  """Decrease the counter.
+
+  Args:
+    fs_db: Firestore db
+    task: Dictionary of the firestore document to be deleted
+  """  
+  try:
+    concurrent_slot_document = d_task.get('concurrent_slot_document', None)
+    if concurrent_slot_document:
+      transaction = fs_db.transaction()
+      doc_ref = firestore.document.DocumentReference(*concurrent_slot_document.split('/'))
+      _release_concurrent_slot(transaction, doc_ref)
+  except Exception as e:
+    print(e)
+    pass
+
+
 
 def _delete_task(project, collection, task):
-  """Deletes a document from the firestore collection .
+  """Deletes a document from the firestore collection.
 
   Args:
     project: String representing the GCP project to use
@@ -113,6 +131,7 @@ def _delete_task(project, collection, task):
     task: The firestore document to be deleted
   """
   db = firestore.Client(project)
+  _decrease_counter(db, task.to_dict())
   db.collection(collection).document(task.id).delete()
 
 
@@ -245,18 +264,13 @@ def _process_task(project, collection, task, current_date_time):
       op = instance.transport._operations_client.get_operation(operation_name)
       # pylint: enable=protected-access
       if op.done:
-        concurrent_slot_document = d_task.get('concurrent_slot_document', None)
-        if concurrent_slot_document:
-          db = firestore.Client()
-          transaction = db.transaction()
-          doc_ref = firestore.document.DocumentReference(
-            *concurrent_slot_document.split('/'))
-          _release_concurrent_slot(transaction, doc_ref)
+        _decrease_counter(d_task)
         if hasattr(op, 'response'):
           d_task['payload']['operation'] = json_format.MessageToDict(op)
           _send_to_success(project, d_task)
         else:
           _send_to_error(project, d_task)
+
         _delete_task(project, collection, task)
         return 1
       else:
@@ -323,6 +337,7 @@ def _create_data():
               'api_endpoint': 'eu-automl.googleapis.com:443'
           }
       },
+      'concurrent_slot_document': 'prediction_tracking/concurrent_document',
       'success_topic':
           'pltv_fwk.jaimemm_tests.copy_batch_predictions',
       'operation_name':
@@ -337,7 +352,7 @@ def _create_data():
           'bq_output_table':
               'ltv-framework',
           'date':
-              '20210303'
+              '20210304'
       },
       'updated_timestamp':
           datetime.datetime.now()
