@@ -223,6 +223,7 @@ def _it_is_time(task, current_date_time):
 
 @firestore.transactional
 def _release_concurrent_slot(transaction, doc_ref):
+  logger.debug('Releasing slot. doc_ref: %s', doc_ref)
   snapshot = doc_ref.get(transaction=transaction)
   new_count = snapshot.get('concurrent_count') - 1
   transaction.update(doc_ref, {'concurrent_count': new_count})
@@ -276,7 +277,7 @@ def _process_task(project, collection, task, current_date_time):
       # pylint: enable=protected-access
       if op.done:
         logger.info('Task done: %s', d_task)
-        _decrease_counter(firestore.Client(project=DEFAULT_GCP_PROJECT), d_task)
+        _decrease_counter(firestore.Client(), d_task)
         if hasattr(op, 'response'):
           d_task['payload']['operation'] = json_format.MessageToDict(op)
           _send_to_success(project, d_task)
@@ -375,6 +376,8 @@ def _create_data():
   db.collection(COLLECTION_NAME).add(body)
   main(event=None, context=None)
 
+def test_decrease_counter():
+  _decrease_counter(firestore.Client(), {'concurrent_slot_document': 'prediction_tracking/concurrent_document'})
 
 if __name__ == '__main__':
-  _create_data()
+  test_decrease_counter()
