@@ -19,12 +19,23 @@
 import base64
 import datetime
 import json
+import logging
 import os
 
 from typing import Any, Dict, Optional
 from google.cloud import firestore
 from google.cloud.functions_v1.context import Context
+import google.cloud.logging
 import pytz
+
+# Set-up logging
+client = google.cloud.logging.Client()
+handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
+logger = logging.getLogger('cloudLogger')
+logger.setLevel(logging.DEBUG) # defaults to WARN
+logger.addHandler(handler)
+
+
 
 COLLECTION_NAME = '{}_{}_{}'.format(
     os.getenv('DEPLOYMENT_NAME', ''), os.getenv('SOLUTION_PREFIX', ''),
@@ -74,6 +85,7 @@ def main(event: Dict[str, Any],
   msg['expiration_timestamp'] = now + delta
   msg['updated_timestamp'] = now
 
+  logger.debug('Inserting long runnning task into Firestore. msg: %s', msg)
   _insert_into_firestore(DEFAULT_GCP_PROJECT, COLLECTION_NAME, msg)
 
 

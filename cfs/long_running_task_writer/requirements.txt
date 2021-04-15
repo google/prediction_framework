@@ -16,3 +16,4 @@ functions-framework
 google-cloud-pubsub
 google-cloud-bigquery
 google-cloud-firestore
+google-cloud-logging
