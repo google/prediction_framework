@@ -125,7 +125,8 @@ def _decrease_counter(fs_db, d_task):
       logger.info('Decreasing concurrent counter. Document: %s',
                    concurrent_slot_document)
       transaction = fs_db.transaction()
-      doc_ref = firestore.document.DocumentReference(*concurrent_slot_document.split('/'))
+      collection, document = concurrent_slot_document.split('/')
+      doc_ref = fs_db.collection(collection).document(document)
       _release_concurrent_slot(transaction, doc_ref)
     else:
       logger.debug('Concurrent slot document not found. Nothing to do.')
