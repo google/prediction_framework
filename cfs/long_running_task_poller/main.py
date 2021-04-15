@@ -65,7 +65,7 @@ def _send_message(project, msg, topic):
   publisher.publish(
       topic_path, data=bytes(msg_json, 'utf-8'), forwarded='1').result()
 
-  print('Forwarded to ', topic)
+  logger.info('Forwarded to: %s', topic)
 
 
 def _send_to_error(project, task):
@@ -129,8 +129,8 @@ def _decrease_counter(fs_db, d_task):
       _release_concurrent_slot(transaction, doc_ref)
     else:
       logger.debug('Concurrent slot document not found. Nothing to do.')
-  except Exception as e:
-    print(e)
+  except Exception:
+    logger.exception('Exception while decreasing counter')
     pass
 
 
@@ -181,11 +181,7 @@ def _process_tasks(project, collection, task_list, max_tasks, current_date_time)
     # the error queue, whatever the exception. That's why bare except.
     # pylint: disable=bare-except
     except:
-
-      print('Unexpected error:', sys.exc_info()[0])
-
-      print(f'{task.id} => {task.to_dict()}')
-
+      logger.exception('Exception while processing task: %s', task)
       try:
         _send_to_error(project, task.to_dict())
       finally:
@@ -229,7 +225,7 @@ def _it_is_time(task, current_date_time):
 def _release_concurrent_slot(transaction, doc_ref):
   snapshot = doc_ref.get(transaction=transaction)
   new_count = snapshot.get('concurrent_count') - 1
-  transaction.update(concurrent_ref, {'concurrent_count': new_count})
+  transaction.update(doc_ref, {'concurrent_count': new_count})
 
 
 def _process_task(project, collection, task, current_date_time):
