@@ -226,7 +226,7 @@ def _it_is_time(task, current_date_time):
 def _release_concurrent_slot(transaction, doc_ref):
   logger.debug('Releasing slot. doc_ref: %s', doc_ref)
   snapshot = doc_ref.get(transaction=transaction)
-  new_count = snapshot.get('concurrent_count') - 1
+  new_count = max(snapshot.get('concurrent_count') - 1, 0)
   transaction.update(doc_ref, {'concurrent_count': new_count})
 
 
