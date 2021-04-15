@@ -278,7 +278,6 @@ def _process_task(project, collection, task, current_date_time):
       # pylint: enable=protected-access
       if op.done:
         logger.info('Task done: %s', d_task)
-        _decrease_counter(firestore.Client(), d_task)
         if hasattr(op, 'response'):
           d_task['payload']['operation'] = json_format.MessageToDict(op)
           _send_to_success(project, d_task)
