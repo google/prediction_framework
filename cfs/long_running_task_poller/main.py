@@ -381,4 +381,4 @@ def test_decrease_counter():
   _decrease_counter(firestore.Client(), {'concurrent_slot_document': 'prediction_tracking/concurrent_document'})
 
 if __name__ == '__main__':
-  test_decrease_counter()
+  _create_data()
