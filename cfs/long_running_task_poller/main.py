@@ -20,15 +20,24 @@ import base64
 import datetime
 import importlib
 import json
+import logging
 import os
 import sys
 
 from typing import Any, Dict, Optional
 from google.cloud.functions_v1.context import Context
 from google.cloud import firestore_v1 as firestore
+import google.cloud.logging
 from google.cloud import pubsub_v1
 from google.protobuf import json_format
 import pytz
+
+# Set-up logging
+client = google.cloud.logging.Client()
+handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
+logger = logging.getLogger('cloudLogger')
+logger.setLevel(logging.DEBUG) # defaults to WARN
+logger.addHandler(handler)
 
 COLLECTION_NAME = '{}_{}_{}'.format(
     os.getenv('DEPLOYMENT_NAME', ''),
@@ -113,9 +122,13 @@ def _decrease_counter(fs_db, d_task):
   try:
     concurrent_slot_document = d_task.get('concurrent_slot_document', None)
     if concurrent_slot_document:
+      logger.info('Decreasing concurrent counter. Document: %s',
+                   concurrent_slot_document)
       transaction = fs_db.transaction()
       doc_ref = firestore.document.DocumentReference(*concurrent_slot_document.split('/'))
       _release_concurrent_slot(transaction, doc_ref)
+    else:
+      logger.debug('Concurrent slot document not found. Nothing to do.')
   except Exception as e:
     print(e)
     pass
@@ -245,11 +258,13 @@ def _process_task(project, collection, task, current_date_time):
   d_task = task.to_dict()
 
   if _it_is_expired(d_task, current_date_time):
+    logger.info('Task expired: %s', d_task)
     _send_to_error(project, d_task)
     _delete_task(project, collection, task)
   else:
     operation_name = d_task['operation_name']
     if operation_name == 'Delayed Forwarding':
+      logger.info('Delayed forwarding: %s', d_task)
       if _it_is_time(d_task, current_date_time):
         _send_to_success(project, d_task)
         _delete_task(project, collection, task)
@@ -264,6 +279,7 @@ def _process_task(project, collection, task, current_date_time):
       op = instance.transport._operations_client.get_operation(operation_name)
       # pylint: enable=protected-access
       if op.done:
+        logger.info('Task done: %s', d_task)
         _decrease_counter(d_task)
         if hasattr(op, 'response'):
           d_task['payload']['operation'] = json_format.MessageToDict(op)
@@ -274,6 +290,7 @@ def _process_task(project, collection, task, current_date_time):
         _delete_task(project, collection, task)
         return 1
       else:
+        logger.debug('Task not done yet: %s', d_task)
         _update_task_timestamp(project, collection, task)
     return 0
 
