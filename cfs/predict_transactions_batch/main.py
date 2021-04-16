@@ -81,20 +81,7 @@ COUNTER_DOCUMENT = 'concurrent_document'
 COUNTER_FIELD = 'concurrent_count'
 COUNTER_LAST_INSERT = 'last_insert'
 BATCH_PREDICT_TIMEOUT = int(os.getenv('BATCH_PREDICT_TIMEOUT_SECONDS', ''))  # Counter timeout in seconds
-COUNTER_SHARDS = 10
 
-
-# def _get_distributed_counter(gcp_project=DEFAULT_GCP_PROJECT,
-#                              collection=FST_PREDICT_COLLECTION,
-#                              counter_name=COUNTER_NAME,
-#                              shards=COUNTER_SHARDS):
-#
-#   fs_client = firestore.Client(gcp_project)
-#   counter.init_counter(fs_client, collection_name, counter_name, shards)
-#   col = fs_client.collection(collection)
-#   doc_ref = col.document(counter_name)
-#   counter = distributed_counters.Counter()
-#   return counter
 
 def _load_metadata(table):
   """Loads the metadata info from BQ.
