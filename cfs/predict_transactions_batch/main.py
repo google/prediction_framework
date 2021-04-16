@@ -19,6 +19,7 @@
 import base64
 import datetime
 import json
+import logging
 import os
 import re
 import sys
@@ -27,14 +28,27 @@ import uuid
 # import numpy as np
 
 from typing import Any, Dict, Optional
+from google.api_core import exceptions as google_exception
 from google.cloud.functions_v1.context import Context
 from google.cloud import automl_v1beta1 as automl
 from google.cloud import bigquery
+import google.cloud.logging
 from google.cloud import pubsub_v1
 from google.cloud import firestore_v1 as firestore
 
+
 import pytz
 
+# Set-up logging
+logger = logging.getLogger('predict_transactions_batch')
+logger.setLevel(logging.DEBUG)
+handler = None
+if os.getenv('LOCAL_LOGGING'):
+  handler = logging.StreamHandler(sys.stderr)
+else:
+  client = google.cloud.logging.Client()
+  handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
+logger.addHandler(handler)
 
 MODEL_REGION = os.getenv('MODEL_REGION', '')
 MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', '')
@@ -65,6 +79,8 @@ BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
 FST_PREDICT_COLLECTION = os.getenv('FST_PREDICT_COLLECTION', '')
 COUNTER_DOCUMENT = 'concurrent_document'
 COUNTER_FIELD = 'concurrent_count'
+COUNTER_LAST_INSERT = 'last_insert'
+COUNTER_TIMEOUT = 3600  # Counter timeout in seconds
 COUNTER_SHARDS = 10
 
 
@@ -293,7 +309,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
     delay_in_seconds: Integer representing the delay time
   """
 
-  print('Processing ', msg['date'])
+  logger.debug('Processing. Date: %s', msg['date'])
 
   db = firestore.Client()
   transaction = db.transaction()
@@ -316,13 +332,12 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
                                           COUNTER_DOCUMENT).path
                                         )
       
-    except Exception as err:
-      print(f"""Error while processing the prediction for
-      {msg['bq_input_to_predict_table']}_{msg['date']}
-       {err}""")
+    except Exception:
+      logger.exception('Error while processing the prediction for: %s_%s',
+                       msg['bq_input_to_predict_table'], msg['date'])
 
   else:
-    print(f"Throttling: {msg['date']}")
+    logger.debug('Throttling: %s', msg['date'])
 
     _throttle_message(gcp_project, msg, enqueue_topic, source_topic,
                       error_topic, success_topic, delay_in_seconds)
@@ -411,32 +426,49 @@ def main(event: Dict[str, Any],
 
   # pylint: disable=bare-except
   except:
-    print('Unexpected error:', sys.exc_info()[0])
+    logger.exception('Unexpected error.')
   # pylint: enable=bare-except
 
 @firestore.transactional
 def _obtain_batch_predict_slot(transaction, db):
-
+  current_timestamp = datetime.datetime.now(pytz.utc)
   try:
-    db.collection(FST_PREDICT_COLLECTION).document(COUNTER_DOCUMENT).create({COUNTER_FIELD: 0})
-  except Exception:
+    db.collection(FST_PREDICT_COLLECTION).document(COUNTER_DOCUMENT).create(
+        {COUNTER_FIELD: 0,
+         COUNTER_LAST_INSERT: current_timestamp,
+         })
+    logger.info('Counter document did not exist. Created: %s/%s',
+                FST_PREDICT_COLLECTION,
+                COUNTER_DOCUMENT)
+  except google_exception.AlreadyExists:
     pass
   concurrent_ref = db.collection(FST_PREDICT_COLLECTION).document(COUNTER_DOCUMENT)
   snapshot = concurrent_ref.get(transaction=transaction)
-  
-  print(snapshot.get(COUNTER_FIELD))
-  if snapshot.get(COUNTER_FIELD):
-    new_count = snapshot.get(COUNTER_FIELD) + 1
+
+  current_count = 0
+  last_insert = datetime.datetime.min.replace(tzinfo=pytz.utc)
+  try:
+    current_count = snapshot.get(COUNTER_FIELD)
+    last_insert = snapshot.get(COUNTER_LAST_INSERT)
+  except KeyError:
+    logger.info('Incomplete count information. Assuming no tasks executing.')
+
+  logger.debug('Obtaining slot. Current count: %s. Last insert: %s',
+               current_count, last_insert)
+  if (current_count and current_timestamp - last_insert <
+      datetime.timedelta(seconds = COUNTER_TIMEOUT)):
+    new_count = current_count + 1
   else:
     new_count = 1
   if new_count <= MAX_CONCURRENT_BATCH_PREDICT:
     transaction.update(concurrent_ref, {
-                       COUNTER_FIELD: new_count
-          })
-  
+        COUNTER_FIELD: new_count,
+        COUNTER_LAST_INSERT: current_timestamp
+    })
     return True
   else:
-  
+    logger.debug('Slot not obtained. Current count: %s. Last insert: %s',
+                 current_count, last_insert)
     return False
 
 
