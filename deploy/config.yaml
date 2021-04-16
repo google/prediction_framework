@@ -88,6 +88,8 @@ DELAY_EXTRACT_NEW_CUSTOMERS_IN_SECONDS: '60'
 DELAY_PREDICT_TRANSACTIONS_IN_SECONDS: '60'
 # Minimum waiting time for predict transactions batch messages to wait in the throttling system
 DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS: '300'
+# Minimum waiting time for extract new customers messages to wait in the throttling system
+DELAY_EXTRACT_NEW_CUSTOMERS_PERIODIC_IN_SECONDS: '60'
 # Number of concurrent AutoML batch predict operations
 MAX_CONCURRENT_BATCH_PREDICT: '5'
 # Minimum minutes without prediction activity in firestore database, before stopping the LIVE model
