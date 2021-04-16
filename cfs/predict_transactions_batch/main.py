@@ -80,7 +80,7 @@ FST_PREDICT_COLLECTION = os.getenv('FST_PREDICT_COLLECTION', '')
 COUNTER_DOCUMENT = 'concurrent_document'
 COUNTER_FIELD = 'concurrent_count'
 COUNTER_LAST_INSERT = 'last_insert'
-BATCH_PREDICT_TIMEOUT = os.getenv('BATCH_PREDICT_TIMEOUT_SECONDS', '')  # Counter timeout in seconds
+BATCH_PREDICT_TIMEOUT = int(os.getenv('BATCH_PREDICT_TIMEOUT_SECONDS', ''))  # Counter timeout in seconds
 COUNTER_SHARDS = 10
 
 
