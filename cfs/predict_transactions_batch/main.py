@@ -80,7 +80,7 @@ FST_PREDICT_COLLECTION = os.getenv('FST_PREDICT_COLLECTION', '')
 COUNTER_DOCUMENT = 'concurrent_document'
 COUNTER_FIELD = 'concurrent_count'
 COUNTER_LAST_INSERT = 'last_insert'
-COUNTER_TIMEOUT = 3600  # Counter timeout in seconds
+BATCH_PREDICT_TIMEOUT = os.getenv('BATCH_PREDICT_TIMEOUT_SECONDS', '')  # Counter timeout in seconds
 COUNTER_SHARDS = 10
 
 
@@ -456,7 +456,7 @@ def _obtain_batch_predict_slot(transaction, db):
   logger.debug('Obtaining slot. Current count: %s. Last insert: %s',
                current_count, last_insert)
   if (current_count and current_timestamp - last_insert <
-      datetime.timedelta(seconds = COUNTER_TIMEOUT)):
+      datetime.timedelta(seconds = BATCH_PREDICT_TIMEOUT)):
     new_count = current_count + 1
   else:
     new_count = 1

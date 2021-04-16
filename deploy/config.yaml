@@ -92,6 +92,8 @@ DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS: '300'
 MAX_CONCURRENT_BATCH_PREDICT: '5'
 # Minimum minutes without prediction activity in firestore database, before stopping the LIVE model
 STOP_MODEL_WAITING_MINUTES: '30'
+# How long until a batch predict operation is considered to have timed out and its concurrent slot is released
+BATCH_PREDICT_TIMEOUT_SECONDS: '3600'
 
 
 
