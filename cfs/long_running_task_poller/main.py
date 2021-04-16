@@ -109,7 +109,7 @@ def _load_tasks(project,
   db = firestore.Client(project)
 
   return db.collection(collection).order_by(
-      'expiration_timestamp',
+      'updated_timestamp',
       direction=firestore.Query.ASCENDING).limit(max_tasks).stream()
 
 def _decrease_counter(fs_db, d_task):
