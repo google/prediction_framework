@@ -70,6 +70,7 @@ S="bq mk \
 --display_name="$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_extract_all_transactions" \
 --data_source=scheduled_query \
 --schedule='None' \
+--service_account_name="$SERVICE_ACCOUNT" \
 --params=\"$PARAMS\" "
 
 echo "$S"
