@@ -74,16 +74,8 @@ S="bq mk \
 
 echo "$S"
 
-CREATE_TRANSFER=$(bq mk \
---transfer_config \
---location="$BQ_LTV_GCP_BROAD_REGION" \
---project_id="$BQ_LTV_GCP_PROJECT" \
---target_dataset="$BQ_LTV_DATASET" \
---display_name="$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_extract_all_transactions" \
---data_source=scheduled_query \
---schedule='None' \
---params="$PARAMS"
-)
+CREATE_TRANSFER=$(eval "$S")
+
 ERROR=$(echo "$CREATE_TRANSFER" | grep -Po "error")
 if [[ "$ERROR" == "error" ]]; then
     echo "$CREATE_TRANSFER"
