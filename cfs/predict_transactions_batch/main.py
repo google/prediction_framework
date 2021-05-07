@@ -50,6 +50,9 @@ else:
   handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
 logger.addHandler(handler)
 
+DEPLOYMENT_NAME = os.getenv('DEPLOYMENT_NAME', '')
+SOLUTION_PREFIX = os.getenv('SOLUTION_PREFIX', '')
+
 MODEL_REGION = os.getenv('MODEL_REGION', '')
 MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', '')
 MODEL_GCP_PROJECT = os.getenv('MODEL_GCP_PROJECT', '')
@@ -62,10 +65,14 @@ DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
 BQ_LTV_GCP_PROJECT = os.getenv('BQ_LTV_GCP_PROJECT', '')
 BQ_LTV_DATASET = os.getenv('BQ_LTV_DATASET', '')
 
-ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', '')
-PREDICT_TRANSACTIONS_BATCH_TOPIC = os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', '')
-PREDICTION_ERROR_HANDLER_TOPIC = os.getenv('PREDICTION_ERROR_HANDLER_TOPIC', '')
-COPY_BATCH_PREDICTIONS_TOPIC = os.getenv('COPY_BATCH_PREDICTIONS_TOPIC', '')
+ENQUEUE_TASK_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                       os.getenv('ENQUEUE_TASK_TOPIC', ''))
+PREDICT_TRANSACTIONS_BATCH_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                                     os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', ''))
+PREDICTION_ERROR_HANDLER_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                                   os.getenv('PREDICTION_ERROR_HANDLER_TOPIC', ''))
+COPY_BATCH_PREDICTIONS_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                                 os.getenv('COPY_BATCH_PREDICTIONS_TOPIC', ''))
 
 DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS = int(
     os.getenv('DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS', '120'))

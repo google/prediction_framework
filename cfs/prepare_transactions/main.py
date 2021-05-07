@@ -32,8 +32,9 @@ from google.cloud import pubsub_v1
 from google.cloud.functions_v1.context import Context
 import pytz
 
-COLLECTION_NAME = '{}_{}_{}'.format(
-    os.getenv('DEPLOYMENT_NAME', ''), os.getenv('SOLUTION_PREFIX', ''),
+DEPLOYMENT_NAME = os.getenv('DEPLOYMENT_NAME', '')
+SOLUTION_PREFIX = os.getenv('SOLUTION_PREFIX', '')
+COLLECTION_NAME = '{}_{}_{}'.format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
     os.getenv('FST_PREPARE_COLLECTION', ''))
 
 DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
@@ -56,9 +57,12 @@ BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
 
 MODEL_REGION = os.getenv('MODEL_REGION', '')
 
-INBOUND_TOPIC = os.getenv('DATA_EXTRACTED_TOPIC', '')
-OUTBOUND_TOPIC = os.getenv('DATA_PREPARED_TOPIC', '')
-ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', '')
+INBOUND_TOPIC = '{}.{}.{}'.format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                  os.getenv('DATA_EXTRACTED_TOPIC', ''))
+OUTBOUND_TOPIC = '{}.{}.{}'.format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                   os.getenv('DATA_PREPARED_TOPIC', ''))
+ENQUEUE_TASK_TOPIC = '{}.{}.{}'.format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                       os.getenv('ENQUEUE_TASK_TOPIC', ''))
 
 DELAY_IN_SECONDS = int(os.getenv('DELAY_PREPARE_IN_SECONDS', '120'))
 

@@ -114,7 +114,7 @@ BQ_LTV_PREDICTIONS_TABLE: 'predictions'
 BQ_LTV_METADATA_TABLE: 'metadata'
 BQ_LTV_TRAINING_DATA_FEATURES_TABLE: 'training_data_features'
 
-# Cloud Pub/Sub settings (It will be automatically prefixed by DEPLOYMENT_NAME.SOLUTION_PREFIX)
+# Cloud Pub/Sub settings
 POLLING_PERIODIC_TX_TOPIC: 'it_is_polling_tx_time'
 POLLING_LONG_RUNNING_TASKS_TOPIC: 'it_is_polling_tasks_time'
 THROTTLER_TOPIC: 'throttle'

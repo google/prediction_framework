@@ -36,8 +36,9 @@ import pandas as pd  # load_data_from_bq returns pandas dataframe
 
 DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
 
-PREPARE_COLLECTION_NAME = '{}_{}_{}'.format(
-    os.getenv('DEPLOYMENT_NAME', ''), os.getenv('SOLUTION_PREFIX', ''),
+DEPLOYMENT_NAME = os.getenv('DEPLOYMENT_NAME', '')
+SOLUTION_PREFIX = os.getenv('SOLUTION_PREFIX', '')
+PREPARE_COLLECTION_NAME = '{}_{}_{}'.format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
     os.getenv('FST_PREPARE_COLLECTION', ''))
 
 BQ_LTV_GCP_PROJECT = os.getenv('BQ_LTV_GCP_PROJECT', '')
@@ -63,9 +64,11 @@ OUTPUT_BQ_PREPARED_TX_DATA_TABLE_PREFIX = BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE
 OUTPUT_BQ_PREDICTIONS_DATA_TABLE_PREFIX = '{}.{}'.format(
     BQ_LTV_TABLE_PREFIX, BQ_LTV_PREDICTIONS_TABLE_ONLY)
 
-INBOUND_TOPIC = os.getenv('DATA_PREPARED_TOPIC', '')
+INBOUND_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                  os.getenv('DATA_PREPARED_TOPIC', ''))
 
-ENQUEUE_TASK_TOPIC = os.getenv('ENQUEUE_TASK_TOPIC', '')
+ENQUEUE_TASK_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                       os.getenv('ENQUEUE_TASK_TOPIC', ''))
 
 DELAY_IN_SECONDS = int(
     os.getenv('DELAY_EXTRACT_NEW_CUSTOMERS_PERIODIC_IN_SECONDS', '-1'))
@@ -80,9 +83,11 @@ def _get_outbound_topic():
   """  
 
   if MODEL_PREDICTION_TYPE == 'BATCH':
-    return os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', '')
+    return "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                             os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', ''))
   else:
-    return os.getenv('PREDICT_TRANSACTIONS_TOPIC', '')
+    return "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                             os.getenv('PREDICT_TRANSACTIONS_TOPIC', ''))
 
 
 def _load_data_from_bq(table, current_date):
