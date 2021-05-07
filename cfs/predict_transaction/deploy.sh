@@ -35,12 +35,7 @@ PREFIX="$DEPLOYMENT_NAME.$SOLUTION_PREFIX"
 echo "$PREFIX"
 echo "$SUB"
 
-if [[ "$SUB" == *"$PREFIX"* ]]; then
-    echo "Inbound Topic already changed in config.yaml. Skipping..."
-else
-    sed -i "s/PREDICT_TRANSACTION_TOPIC.*/PREDICT_TRANSACTION_TOPIC: '$PREFIX.$INBOUND_TOPIC_NAME'/" "$CONFIG_PATH"
-    INBOUND_TOPIC_NAME=$PREFIX.$INBOUND_TOPIC_NAME
-fi
+INBOUND_TOPIC_NAME=$PREFIX.$INBOUND_TOPIC_NAME
 
 create_pubsub_topic "$INBOUND_TOPIC_NAME"
 

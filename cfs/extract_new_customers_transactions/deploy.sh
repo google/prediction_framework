@@ -36,21 +36,11 @@ PREFIX="$DEPLOYMENT_NAME.$SOLUTION_PREFIX"
 echo "$PREFIX"
 echo "$SUB"
 
-if [[ "$SUB" == *"$PREFIX"* ]]; then
-    echo "Inbound Topic already changed in config.yaml. Skipping..."
-else
-    sed -i "s/DATA_PREPARED_TOPIC.*/DATA_PREPARED_TOPIC: '$PREFIX.$INBOUND_TOPIC_NAME'/" $CONFIG_PATH
-    INBOUND_TOPIC_NAME=$PREFIX.$INBOUND_TOPIC_NAME
-fi
+INBOUND_TOPIC_NAME=$PREFIX.$INBOUND_TOPIC_NAME
 
 SUB=$(cat $CONFIG_PATH |  grep -P PREDICT_TRANSACTIONS_TOPIC)
 
-if [[ "$SUB" == *"$PREFIX"* ]]; then
-    echo "Outbound Topic already changed in config.yaml. Skipping..."
-else
-    sed -i "s/PREDICT_TRANSACTIONS_TOPIC.*/PREDICT_TRANSACTIONS_TOPIC: '$PREFIX.$OUTBOUND_TOPIC_NAME'/" $CONFIG_PATH
-    OUTBOUND_TOPIC_NAME=$PREFIX.$OUTBOUND_TOPIC_NAME
-fi
+OUTBOUND_TOPIC_NAME=$PREFIX.$OUTBOUND_TOPIC_NAME
 
 create_pubsub_topic "$INBOUND_TOPIC_NAME"
 create_pubsub_topic "$OUTBOUND_TOPIC_NAME"

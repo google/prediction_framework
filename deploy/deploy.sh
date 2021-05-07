@@ -122,7 +122,7 @@ function create_schedulers {
     SC1=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_model_stopper \
     --schedule "${MODEL_STOPPER_POLLER_CONFIG//\\/}" \
     --time-zone "$TIMEZONE" \
-    --topic "$STOP_MODEL_TOPIC" \
+    --topic "$DEPLOYMENT_NAME.$SOLUTION_PREFIX.$STOP_MODEL_TOPIC" \
     --message-body "It's Model Stop Time!" \
     --format "none")
     echo "$SC1"
@@ -141,7 +141,7 @@ function create_schedulers {
     SC2=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_periodic_transactions_poller \
     --schedule "${DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG//\\/}" \
     --time-zone "$TIMEZONE" \
-    --topic "$POLLING_PERIODIC_TX_TOPIC" \
+    --topic "$DEPLOYMENT_NAME.$SOLUTION_PREFIX.$POLLING_PERIODIC_TX_TOPIC" \
     --message-body "It's Poll Tx Time!" \
     --format "none")
     ERROR=$(echo "$SC2" | grep -Po "error")
@@ -157,7 +157,7 @@ function create_schedulers {
     SC3=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_long_running_tasks_poller \
     --schedule "${LONG_RUNNING_TASKS_POLLER_CONFIG//\\/}" \
     --time-zone "$TIMEZONE" \
-    --topic "$POLLING_LONG_RUNNING_TASKS_TOPIC" \
+    --topic "$DEPLOYMENT_NAME.$SOLUTION_PREFIX.$POLLING_LONG_RUNNING_TASKS_TOPIC" \
     --message-body "It's Poll Task Time!" \
     --format "none")
     ERROR=$(echo "$SC3" | grep -Po "error")
