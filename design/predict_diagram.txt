@@ -4,7 +4,7 @@ participant scheduler as sch
 participant BQ as bq
 participant tx_periodic_extractor as excf
 participant prepare_periodic_tx as prcf
-participant extract_new_customers_tx as nwcf
+participant filter_tx as nwcf
 participant predict_txs as prtxs
 participant predict_tx as prtx
 participant throttle_and_long_running_tasks as lrts

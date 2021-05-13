@@ -15,4 +15,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cp ../../deploy/customization/extract_new_customers_transactions/custom_functions.py ./
+cp ../../deploy/customization/filter_transactions/custom_functions.py ./

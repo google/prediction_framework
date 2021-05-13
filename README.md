@@ -600,7 +600,7 @@ BQ\_LTV\_TRAINING\_DATA\_PRICE\_AVGS\_TABLE: 'training\_data\_price\_avgs'
 
     *   **_hook\_get\_load\_data\_query_**
 
-In _deploy/customization/extract\_new\_customers\_daily\_transactions/[custom\_functions.py](https://cs.corp.google.com/piper///depot/google3/experimental/users/jaimemm/carrefour_groceries_ltv/deploy/customization/extract_new_customers_daily_transactions/custom_functions.py?ws=jaimemm/34)_
+In _deploy/customization/filter\_transactions/custom\_functions.py_
 
 
 
@@ -608,7 +608,7 @@ In _deploy/customization/extract\_new\_customers\_daily\_transactions/[custom\_f
     *   **_hook\_get\_load\_tx\_data\_query_** and 
     *   **_hook\_prepare_**
 
-    In _deploy/customization/prepare\_daily\_transactions/[custom\_functions.py](https://cs.corp.google.com/piper///depot/google3/experimental/users/jaimemm/carrefour_groceries_ltv/deploy/customization/extract_new_customers_daily_transactions/custom_functions.py?ws=jaimemm/34)_
+    In _deploy/customization/prepare\_transactions/custom\_functions.py_
 
 
      \
@@ -618,7 +618,7 @@ This is the key part, a strong dependency is set between this step and the featu
 
     *   **_hook\_get\_load\_batch\_query_**
 
-In _deploy/customization/predict\_transactions/[custom\_functions.py](https://cs.corp.google.com/piper///depot/google3/experimental/users/jaimemm/carrefour_groceries_ltv/deploy/customization/extract_new_customers_daily_transactions/custom_functions.py?ws=jaimemm/34)_
+In _deploy/customization/predict\_transactions/custom\_functions.py_
 
 
 
@@ -626,7 +626,7 @@ In _deploy/customization/predict\_transactions/[custom\_functions.py](https://cs
     *   **_hook\_apply\_formulas_** and 
     *   **_hook\_get\_bq\_schema_**
 
-    In_ deploy/customization/predict\_transaction/[custom\_functions.py](https://cs.corp.google.com/piper///depot/google3/experimental/users/jaimemm/carrefour_groceries_ltv/deploy/customization/extract_new_customers_daily_transactions/custom_functions.py?ws=jaimemm/34)_
+    In _deploy/customization/predict\_transaction/custom\_functions.py_
 
 
 
@@ -715,7 +715,7 @@ If any task needs to be done after the model is stopped (i.e copy one table to a
 
 **_hook\_post\_stop\_action_**
 
- In_ deploy/customization/stop\_model/[custom\_functions.py](https://cs.corp.google.com/piper///depot/google3/experimental/users/jaimemm/carrefour_groceries_ltv/deploy/customization/extract_new_customers_daily_transactions/custom_functions.py?ws=jaimemm/34)_
+ In_ deploy/customization/stop\_model/custom\_functions.py_
 
 
 ### DEPLOYMENT

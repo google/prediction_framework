@@ -1,6 +1,6 @@
 """This module builds the query to extract the relevant customer transactions.
 
-It is used by extract_new_customers__transactions cloud function to extract
+It is used by filter_transactions cloud function to extract
 the relevant customer transactions. Here it's possible to filter
 new customers only, repeating customers only or all customer transactions.
 

@@ -71,7 +71,7 @@ ENQUEUE_TASK_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
                                        os.getenv('ENQUEUE_TASK_TOPIC', ''))
 
 DELAY_IN_SECONDS = int(
-    os.getenv('DELAY_EXTRACT_NEW_CUSTOMERS_PERIODIC_IN_SECONDS', '-1'))
+    os.getenv('DELAY_FILTER_TRANSACTIONS_PERIODIC_IN_SECONDS', '-1'))
 
 
 
