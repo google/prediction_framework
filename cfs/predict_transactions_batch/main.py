@@ -71,8 +71,8 @@ PREDICT_TRANSACTIONS_BATCH_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_P
                                                      os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', ''))
 PREDICTION_ERROR_HANDLER_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
                                                    os.getenv('PREDICTION_ERROR_HANDLER_TOPIC', ''))
-COPY_BATCH_PREDICTIONS_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
-                                                 os.getenv('COPY_BATCH_PREDICTIONS_TOPIC', ''))
+POST_PROCESS_BATCH_PREDICTIONS_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
+                                                 os.getenv('POST_PROCESS_BATCH_PREDICTIONS_TOPIC', ''))
 
 DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS = int(
     os.getenv('DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS', '120'))
@@ -403,7 +403,7 @@ def main(event: Dict[str, Any],
   client_class = CLIENT_CLASS
   enqueue_topic = ENQUEUE_TASK_TOPIC
   source_topic = PREDICT_TRANSACTIONS_BATCH_TOPIC
-  success_topic = COPY_BATCH_PREDICTIONS_TOPIC
+  success_topic = POST_PROCESS_BATCH_PREDICTIONS_TOPIC
   error_topic = PREDICTION_ERROR_HANDLER_TOPIC
   gcp_project = DEFAULT_GCP_PROJECT
   delay_in_seconds = DELAY_PREDICT_TRANSACTIONS_BATCH_IN_SECONDS

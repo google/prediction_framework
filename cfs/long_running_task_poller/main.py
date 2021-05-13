@@ -353,7 +353,7 @@ def _create_data():
       },
       'concurrent_slot_document': 'prediction_tracking/concurrent_document',
       'success_topic':
-          'pltv_fwk.jaimemm_tests.copy_batch_predictions',
+          'pltv_fwk.jaimemm_tests.post_process_batch_predictions',
       'operation_name':
           'projects/988912752389/locations/eu/operations/TBL8979557532418703360',
       'error_topic':

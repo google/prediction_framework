@@ -28,9 +28,9 @@ eval "$(parse_yaml ""$CUSTOM_CONFIG_PATH"")"
 
 sh copy_files.sh
 
-INBOUND_TOPIC_NAME="$COPY_BATCH_PREDICTIONS_TOPIC"
+INBOUND_TOPIC_NAME="$POST_PROCESS_BATCH_PREDICTIONS_TOPIC"
 
-SUB=$(cat $CONFIG_PATH | grep -P COPY_BATCH_PREDICTIONS_TOPIC)
+SUB=$(cat $CONFIG_PATH | grep -P POST_PROCESS_BATCH_PREDICTIONS_TOPIC)
 
 PREFIX="$DEPLOYMENT_NAME.$SOLUTION_PREFIX"
 echo "$PREFIX"
@@ -42,7 +42,7 @@ create_pubsub_topic "$INBOUND_TOPIC_NAME"
 
 CFG_FILE=$(cat $CONFIG_PATH $CUSTOM_CONFIG_PATH > ./__config.yaml)
 
-gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_copy_batch_predictions" \
+gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_post_process_batch_predictions" \
    --runtime python37 \
    --entry-point main \
    --trigger-resource "$INBOUND_TOPIC_NAME" \

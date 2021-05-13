@@ -125,7 +125,7 @@ PREDICT_TRANSACTIONS_TOPIC: 'predict_transactions'
 PREDICT_TRANSACTION_TOPIC: 'predict_transaction'
 ENQUEUE_TASK_TOPIC: 'enqueue_task'
 STOP_MODEL_TOPIC: 'it_is_stop_model_time'
-COPY_BATCH_PREDICTIONS_TOPIC: 'copy_batch_predictions'
+POST_PROCESS_BATCH_PREDICTIONS_TOPIC: 'post_process_batch_predictions'
 
 #Firestore prefixes
 FST_PREPARE_COLLECTION: 'prepare_periodic_tx_tracking'
