@@ -128,13 +128,13 @@ export_date | STRING | NULLABLE
 model_date  | STRING | NULLABLE
 model_name  | STRING | NULLABLE
 
-Where: 
+Where:
 
-* `export_date` indicates the latest full data export for training
-happened. It will be used for automatic model training in the future. 
-* `model_date` : indicates the data used to train the model. This correlates with
-the features table. 
-* `model_name`: the name of the model in AutoML
+*   `export_date` indicates the latest full data export for training happened.
+    It will be used for automatic model training in the future.
+*   `model_date` : indicates the data used to train the model. This correlates
+    with the features table.
+*   `model_name`: the name of the model in AutoML
 
 Example:
 
@@ -278,10 +278,10 @@ DEFAULT_GCP_PROJECT: ‘my-google-project’
 DEFAULT_GCP_REGION: 'europe-west1'
 ```
 
-Set data source GCP project, dataset and tables:
-`BQ_DATA_SOURCE_GCP_PROJECT: the project where the data source is.
-BQ_DATA_SOURCE_DATA_SET: the dataset where the data source is.
-BQ_DATA_SOURCE_TABLES: the tables template to use as a data source.` 
+Set data source GCP project, dataset and tables: `BQ_DATA_SOURCE_GCP_PROJECT:
+the project where the data source is. BQ_DATA_SOURCE_DATA_SET: the dataset where
+the data source is. BQ_DATA_SOURCE_TABLES: the tables template to use as a data
+source.`
 
 Sample values:
 
@@ -302,25 +302,25 @@ BQ_LTV_GCP_BROAD_REGION: region used to create the datasets.
 BQ_LTV_DATASET: dataset name to be used for all the generated tables.
 ```
 
-Sample Values: 
+Sample Values:
 
-```BQ_LTV_GCP_PROJECT: ‘customer-project’
+```BQ_LTV_GCP_PROJECT:
 BQ_LTV_GCP_BROAD_REGION: 'EU' BQ_LTV_DATASET: 'pltv'
 
 ```
 
-Set model configuration: 
+Set model configuration:
 
-```MODEL_GCP_PROJECT: the project where the model
+```MODEL_GCP_PROJECT:
 resides. MODEL_REGION: the region of the project where the model resides.
 MODEL_AUTOML_API_ENDPOINT: the endpoint according to the region.
 MODEL_NEW_CLIENT_DAYS: number of days which will define the cohort for new
 customers.
 ```
 
-Sample values: 
+Sample values:
 
-```MODEL_GCP_PROJECT: 'my-model-project MODEL_REGION: 'eu'
+```MODEL_GCP_PROJECT:
 MODEL_AUTOML_API_ENDPOINT: 'eu-automl.googleapis.com:443'
 MODEL_NEW_CLIENT_DAYS: '365'
 ```
@@ -335,12 +335,10 @@ LONG_RUNNING_TASKS_POLLER_CONFIG: cron syntax for polling waiting tasks.
 DISCARD_TASKS_OLDER_THAN_HOURS: expiration time in hours for the waiting tasks
 ```
 
-Sample values: 
-```MODEL_STOPPER_POLLER_CONFIG: '0 \\*/1 \\* \\* \\*'
+Sample values: `MODEL_STOPPER_POLLER_CONFIG: '0 \\*/1 \\* \\* \\*'
 DATA_SOURCE_DAILY_TX_POLLER_CONFIG: '0 \\*/1 \\* \\* \\*'
 LONG_RUNNING_TASKS_POLLER_CONFIG: '\\*/2 \\* \\* \\* \\*'
-DISCARD_TASKS_OLDER_THAN_HOURS: '23' TIMEZONE: 'Europe/Madrid'
-```
+DISCARD_TASKS_OLDER_THAN_HOURS: '23' TIMEZONE: 'Europe/Madrid'`
 
 Set the amount of minutes the stopper has to consider as inactivity, after the
 latest prediction task activity:
@@ -377,8 +375,8 @@ position of the task into the “queue”, affected by `MAX_TASKS_PER_POLL`
 `DELAY_EXTRACT_NEW_CUSTOMERS_DAILY_IN_SECONDS: '60'` → minimum delay to be
 introduced on the extract new customers transactions daily task. The execution
 time will depend on `max(DELAY_PREPARE_DAILY_IN_SECONDS,
-LONG_RUNNING_TASKS_POLLER_CONFIG)` and the position of the task into the
-queue, affected by `MAX_TASKS_PER_POLL`.
+LONG_RUNNING_TASKS_POLLER_CONFIG)` and the position of the task into the queue,
+affected by `MAX_TASKS_PER_POLL`.
 
 `DELAY_PREDICT_TRANSACTIONS_IN_SECONDS: '60'` → minimum delay to be introduced
 on the predict transactions task. The execution time will depend on
@@ -495,6 +493,35 @@ file `deploy/customization/stop_model/custom_functions.py`.
 
 ### Deployment
 
+#### Permissions
+
+The framework allows for flexibility in terms of how resources are distributed
+across different GCP projects. For this guide, we'll consider the following
+projects for simplicity:
+
+*   **model**: This is where the AutoML model has been trained. Previously
+    existing.
+*   **input**: This is where the customer data resides. Previously existing.
+*   **processing**: This is where our Cloud Functions, Firestore DB and Pub/Sub
+    reside. It is also where we'll store the output. We'll create it in the
+    following steps.
+
+First, create a service account on _processing_ project. Grat this service
+account the following permissions:
+
+*   _BigQuery Job User_ role on processing project.
+*   _BigQuery Data Viewer_ role on source tables on input project.
+*   _BigQuery Data Editor_ role on destination dataset on processing project.
+*   _AutoML Predictor_ role on the AutoML model on the model project.
+*   _AutoML Viewer_ role on the AutoML model on the model project.
+*   _Cloud Datastore User_ role on the processing project.
+
+Second, go to the _model_ project, find the _AutoML Service Agent_ service
+account on IAM. Copy its address and then grant it _BigQuery Data Editor_ role
+on the destination dataset on the _processing_ project.
+
+#### Running the deployment script
+
 In Firestore screen, make sure you have enabled Firestore in Native Mode
 
 ![alt_text](docs/resources/image15.png "image_tooltip")
@@ -504,7 +531,7 @@ execute: `sh deploy.sh`
 
 You will need to have GCP CLI tools installed.
 
-A successful deployment will output the following results in the console: 
+A successful deployment will output the following results in the console:
 
 ```
 Now deploying _pLTV_scaffolding_ ...
