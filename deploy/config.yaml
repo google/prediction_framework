@@ -109,7 +109,7 @@ BQ_LTV_PERIODIC_TX_TRANSFER_ID: '5f8f8636-0000-2a63-8b5c-3c286d38a9b2'
 # BQ LTV tables: BEST DO NOT MODIFY
 BQ_LTV_ALL_PERIODIC_TX_TABLE: 'all_periodic_transactions'
 BQ_LTV_PREPARED_PERIODIC_TX_TABLE: 'prepared_periodic_transactions'
-BQ_LTV_PREPARED_NEW_CUSTOMERS_TX_TABLE: 'prepared_new_customers_periodic_transactions'
+BQ_LTV_FILTERED_TX_TABLE: 'filtered_periodic_transactions'
 BQ_LTV_PREDICTIONS_TABLE: 'predictions'
 BQ_LTV_METADATA_TABLE: 'metadata'
 BQ_LTV_TRAINING_DATA_FEATURES_TABLE: 'training_data_features'
