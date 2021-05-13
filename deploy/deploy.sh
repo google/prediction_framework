@@ -102,6 +102,7 @@ function enable_services {
     endpoints.googleapis.com \
     bigquery.googleapis.com \
     bigquerydatatransfer.googleapis.com \
+    automl.googleapis.com \
     --format "none"
 }
 # Create the necessary BQ transfers.
