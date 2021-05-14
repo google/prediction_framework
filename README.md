@@ -15,18 +15,20 @@ The framework will fit almost all use cases under the following conditions:
 
 *   Data source is stored in BQ
 *   Data output is stored in BQ
-*   Feature engineering time for a single batch: &lt; 600 seconds (Cloud
+*   Prepare, filter and post-process: &lt; 540 seconds time-limit (Cloud
     Function limit)
 *   AutoML model is used (if BQML or Tensorflow small changes need to be done)
 *   You are familiar with Python
 *   The service account from the default Google project is used. That service
-    account must be granted to access external resources. (If different SA
-    needed, small changes will be required on the deployment process)
+    account must be granted access to external resources. (If different SAs for
+    different projects are needed, small changes will be required on the 
+    deployment process)
 
 ## What is this framework?
 
 This framework is an effort to generalise all the steps involved in a prediction
-project, which requires daily processing, backfilling, throttling,
+project: extract, prepare (aka feature eng.), filter, predict and post-process
+plus some operational functionality like backfilling, throttling (for API limits),
 synchronisation, storage and reporting so it could be reused, saving 80% of the
 development time.
 
@@ -47,7 +49,7 @@ The framework is flexible enough to address that scenario.
 *   **Extract**: this step will on a timely basis, query the transactions from
     the data source, corresponding to the run date (scheduler or backfill run
     date) and will store them in a new table into the local project BigQuery.
-*   **Prepare**: immediately after the daily transactions extract for one
+*   **Prepare**: immediately after the transactions extract for one
     specific date is available, the data will be picked up from the local
     BigQuery and processed according to the specs of the model. Once the data is
     processed, it will be stored in a new table into the local project BigQuery.
@@ -103,7 +105,7 @@ This table contains the LTV predictions for the transactions in
 `prepared_new_customers_periodic_transactions_YYYYMMDD`. Since the ultimate
 purpose of this table is to feed Google Ads, Campaign Manager 360, SA360 or any
 other system interested into the conversion value, the schema will look similar
-to the following one (it could be customised):
+to the following one (it could be customised using the hook functions):
 
 Field name       | Type   | Mode
 ---------------- | ------ | --------
@@ -120,7 +122,7 @@ conversionValue5 | FLOAT  | REQUIRED
 #### `metadata`
 
 Stores the information regarding the model to use, which will be used to
-correlate with the features. The schema is fixed:
+correlate with the features table date suffix. The schema is fixed:
 
 Field name  | Type   | Mode
 ----------- | ------ | --------
@@ -167,9 +169,10 @@ Because it is very easy to report on:
 
 *   The increase on the number of conversions and new customer conversions
 *   The increase of AOV in overall and new customer conversions
+*   The evolution of advanced indicators to understand if LTV bidding is working
 *   The relationship between different types of conversions
 *   Any kind of historical query is easier and cheaper than performing them over
-    massive data sources (i.e 7TB of Google Analytics)
+    massive data sources (i.e TB of data from Google Analytics)
 
 If extra tables are needed it is possible to create and use them from the
 customization code.
@@ -180,7 +183,7 @@ Firestore is used for throttling, wait & notify and synchronize patterns.
 
 There are 4 different collections used:
 
-#### `prepare_daily_tx_tracking`
+#### `<DEPLOYMENT_NAME>.<SOLUTION_PREFIX>_prepare_periodic_tx_tracking`
 
 Logs the activities which are still in prepare data. It is used to not trigger
 the extraction of new customer transactions until all “prepare” activities are
@@ -188,30 +191,30 @@ completed. To decide if a customer is new or not, usually a time window is
 considered, therefore the past data must be stored before looking to query such
 time window.
 
-#### `prediction_tracking`
+#### `<DEPLOYMENT_NAME>.<SOLUTION_PREFIX>_prediction_tracking`
 
 This collection is used to track if any prediction task is still running, so the
 stop model process does not stop the AutoML model while prediction is happening.
 
-#### `long_running_tasks`
+#### `<DEPLOYMENT_NAME>.<SOLUTION_PREFIX>_long_running_tasks`
 
 This collection is used to store the messages which have been throttled or
 pending on a long running operation like AutoML model deploy.
 
-#### `unitary_prediction_tracking<prediction_table>`
+#### `<DEPLOYMENT_NAME>.<SOLUTION_PREFIX>_unitary_prediction_tracking<prediction_table>`
 
 This is just for traceability purposes, in case something would fail. Only for
 AutoML Live scenario.
 
 #### Collection names examples:
 
-`food_pltv_prepare_daily_tx_tracking`
+`demo_pltv_example_prepare_periodic_tx_tracking`
 
-`food_pltv_long_running_tasks`
+`demo_pltv_example_long_running_tasks`
 
-`food_pltv_prediction_tracking`
+`demo_pltv_example_prediction_tracking`
 
-`food_pltv_unitary_prediction_tracking_test-ltv-deploy.ltv_ml.predictions_20200511`
+`demo_pltv_example_unitary_prediction_tracking_test-ltv-deploy.ltv_ml.predictions_20200511`
 
 ## What can I do with the predictions?
 
@@ -257,8 +260,8 @@ GCP resources to be created:
 
 ```
     # General settings
-    DEPLOYMENT_NAME: 'food'
-    SOLUTION_PREFIX: 'pltv’
+    DEPLOYMENT_NAME: 'demo'
+    SOLUTION_PREFIX: 'pltv_example’
 ```
 
 Set the service account to be used in all CFs. If it does not exist yet, do not
@@ -330,14 +333,14 @@ Set scheduler settings:
 ```
 TIMEZONE: the timezone used to create the schedulers.
 MODEL_STOPPER_POLLER_CONFIG: cron syntax for model stopper scheduler.
-DATA_SOURCE_DAILY_TX_POLLER_CONFIG: cron syntax for model data source extractor scheduler.
+DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG: cron syntax for model data source extractor scheduler.
 LONG_RUNNING_TASKS_POLLER_CONFIG: cron syntax for polling waiting tasks.
 DISCARD_TASKS_OLDER_THAN_HOURS: expiration time in hours for the waiting tasks
 ```
 
-Sample values: `MODEL_STOPPER_POLLER_CONFIG: '0 \\*/1 \\* \\* \\*'
-DATA_SOURCE_DAILY_TX_POLLER_CONFIG: '0 \\*/1 \\* \\* \\*'
-LONG_RUNNING_TASKS_POLLER_CONFIG: '\\*/2 \\* \\* \\* \\*'
+Sample values: `MODEL_STOPPER_POLLER_CONFIG: '0 \*/1 \* \* \*'
+DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG: '0 \*/1 \* \* \*'
+LONG_RUNNING_TASKS_POLLER_CONFIG: '\*/2 \* \* \* \*'
 DISCARD_TASKS_OLDER_THAN_HOURS: '23' TIMEZONE: 'Europe/Madrid'`
 
 Set the amount of minutes the stopper has to consider as inactivity, after the
@@ -354,8 +357,8 @@ open …) throttling needed to be in place.
 
 ###### Polling & throttling settings
 
-`DATA_SOURCE_DAILY_TX_POLLER_CONFIG**: '0 \*/1 \* \* \*'` → the daily poller
-that triggers the daily export. Default every hour.
+`DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG**: '0 \*/1 \* \* \*'` → the poller
+that triggers the periodic export. Default every hour.
 
 `LONG_RUNNING_TASKS_POLLER_CONFIG: '\*/2 \* \* \* \*'` → the poller to check the
 enqueued tasks (either intentionally delayed or long running ones). Default 2
@@ -367,20 +370,19 @@ minutes.
 `MAX_TASKS_PER_POLL: '10'` → the number of “enqueued” tasks to retrieve on every
 poll. Default: 10. Increase it wisely.
 
-`DELAY_PREPARE_DAILY_IN_SECONDS: '60'` → minimum delay to be introduced on the
-prepare daily task. The execution time will depend on
-`max(DELAY_PREPARE_DAILY_IN_SECONDS, LONG_RUNNING_TASKS_POLLER_CONFIG)` and the
+`DELAY_PREPARE_IN_SECONDS: '60'` → minimum delay to be introduced on the
+prepare task. The execution time will depend on
+`max(DELAY_PREPARE_IN_SECONDS, LONG_RUNNING_TASKS_POLLER_CONFIG)` and the
 position of the task into the “queue”, affected by `MAX_TASKS_PER_POLL`
 
-`DELAY_EXTRACT_NEW_CUSTOMERS_DAILY_IN_SECONDS: '60'` → minimum delay to be
-introduced on the extract new customers transactions daily task. The execution
-time will depend on `max(DELAY_PREPARE_DAILY_IN_SECONDS,
-LONG_RUNNING_TASKS_POLLER_CONFIG)` and the position of the task into the queue,
-affected by `MAX_TASKS_PER_POLL`.
+`DELAY_FILTER_IN_SECONDS: '60'` → minimum delay to be
+introduced on the filter task. The execution time will depend on 
+`max(DELAY_PREPARE_IN_SECONDS, LONG_RUNNING_TASKS_POLLER_CONFIG)` and the position 
+of the task into the queue, affected by `MAX_TASKS_PER_POLL`.
 
 `DELAY_PREDICT_TRANSACTIONS_IN_SECONDS: '60'` → minimum delay to be introduced
 on the predict transactions task. The execution time will depend on
-`max(DELAY_PREPARE_DAILY_IN_SECONDS, LONG_RUNNING_TASKS_POLLER_CONFIG)` and the
+`max(DELAY_PREPARE_IN_SECONDS, LONG_RUNNING_TASKS_POLLER_CONFIG)` and the
 position of the task into the queue, affected by `MAX_TASKS_PER_POLL`.
 
 `MAX_PREDICTION_BATCH_SIZE: '500'` → the number of rows to be queried per batch.
@@ -397,7 +399,7 @@ This section is specific for those variables to be used in the
 
 *   In in `deploy/customization/queries/extract_all_transactions.sql`:
 
-    *   Replace data transfer SQL query which extracts the daily transactions .
+    *   Replace data transfer SQL query which extracts the data.
 
 *   In `deploy/customization/filter_transactions/custom_functions.py`:
 
@@ -481,8 +483,6 @@ I.e
     # custom scripts calls
 
     customization/scripts/populate_price_averages.sh
-
-    ```
     ```
 
 #### Post Model Stop Actions
@@ -599,7 +599,7 @@ resources!!
 \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
 ```
 
-The following resources must be created into the GCP Project: \
+The following resources must be created into the GCP Project:
 
 *   IAM account
 
@@ -617,8 +617,7 @@ The following resources must be created into the GCP Project: \
 
 ![alt_text](docs/resources/cloud_functions.png "image_tooltip")
 
-*   Schedulers \
-    \
+*   Schedulers
 
 ![alt_text](docs/resources/schedulers.png "image_tooltip")
 
@@ -654,7 +653,7 @@ steps:
 
 There’re two main ways of triggering a request:
 
-*   Trigger the daily scheduler (time triggered or manual)
+*   Trigger the periodic transaction scheduler (time triggered or manual)
 *   Trigger backfilling (see backfilling section)
 
 ### Backfilling
@@ -676,7 +675,7 @@ Just use BigQuery scheduled queries backfilling on the BQ scheduled query
 ![alt_text](docs/resources/image10.png "image_tooltip")
 
 *   Soon messages will appear on the topic
-    `<DEPLOYMENT_NAME>.<SOLUTION_PREFIX>.daily_extract_ready`
+    `<DEPLOYMENT_NAME>.<SOLUTION_PREFIX>.periodic_extract_ready`
 
 Note: not tested on batches of more than 1 month
 
@@ -749,11 +748,11 @@ When executing the data transfer in BQ it will create/overwrite the target table
 with the resulting data from the query, even if empty. As per today, there’s no
 way to avoid blank table creation. This behaviour is not affecting the further
 steps, since checks have been included and there’s no query on
-extract_daily_transactions_\*`
+extract_periodic_transactions_\*`
 
 ### “There are less tables in `prepared_transactions_YYYYMMDD` than in `extract_transactions_YYYYMMDD`
 
-That’s because of the empty tables in `extact_daily_transactions:YYYYMMDD`,
+That’s because of the empty tables in `extact_periodic_transactions:YYYYMMDD`,
 which are ignored.
 
 ### “There are less tables in `prepared_new_customers_transactions_YYYYMMDD` than in `prepared_transactions_YYYYMMDD`
@@ -780,7 +779,7 @@ can be achieved just by changing the topic values in the config file. Also, make
 sure to:
 
 *   Throttle requests when backfilling (only 5 requests per minute). You can use
-    the enqueue operation used in other steps. \
+    the enqueue operation used in other steps.
 
 *   Pass the necessary information to reconstruct the AutoML output dataset and
     table name.
@@ -810,3 +809,7 @@ topics.
 ### “I receive the following error: The Cloud Firestore API is not available for Datastore Mode projects.”
 
 Have you enabled the Native mode of Firestore?
+
+### “The process has not triggered or failed due to temporary Cloud Function unavailability.”
+
+We only saw this error twice in 8 months, but you it could be circumvented by setting an alarm on logging/user/cloudfunction_errors [RATE] with the following policy "Any logging.googleapis.com/user/cloudfunction_errors stream increases by 1% for greater than 5 minutes". When the alarm triggers, you could use the backfill process to reprocess the missing data.
