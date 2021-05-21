@@ -83,7 +83,10 @@ BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
                                        os.getenv('BQ_LTV_METADATA_TABLE', ''))
 
-FST_PREDICT_COLLECTION = os.getenv('FST_PREDICT_COLLECTION', '')
+FST_PREDICT_COLLECTION = '{}_{}_{}'.format(
+    os.getenv('DEPLOYMENT_NAME', ''),
+    os.getenv('SOLUTION_PREFIX', ''),
+    os.getenv('FST_PREDICT_COLLECTION', ''))
 COUNTER_DOCUMENT = 'concurrent_document'
 COUNTER_FIELD = 'concurrent_count'
 COUNTER_LAST_INSERT = 'last_insert'
