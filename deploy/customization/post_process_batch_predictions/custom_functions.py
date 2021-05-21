@@ -1,4 +1,3 @@
-"""This module is used by the predict_transaction cloud functions."""
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +14,9 @@
 #
 # -*- coding: utf-8 -*-
 
-"""The aim is to calculate the final value of the prediction and define the schema
+"""This module is used by the predict_transaction cloud functions.
+
+The aim is to calculate the final value of the prediction and define the schema
 to write those predictions into BQ
 
 

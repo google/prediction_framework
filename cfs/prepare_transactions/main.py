@@ -1,5 +1,3 @@
-"""Google Cloud function that aggregates client transactions into single line."""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +13,8 @@
 # limitations under the License.
 #
 # -*- coding: utf-8 -*-
+
+"""Google Cloud function that aggregates client transactions into single line."""
 
 import base64
 import datetime

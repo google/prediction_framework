@@ -1,5 +1,3 @@
-"""This module builds the query to extract the relevant customer transactions."""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +14,9 @@
 #
 # -*- coding: utf-8 -*-
 
-"""It is used by filter_transactions cloud function to extract
+"""This module builds the query to extract the relevant customer transactions.
+
+It is used by filter_transactions cloud function to extract
 the relevant customer transactions. Here it's possible to filter
 new customers only, repeating customers only or all customer transactions.
 

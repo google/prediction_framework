@@ -1,5 +1,3 @@
-"""This module is where the data is prepared for prediction."""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +14,9 @@
 #
 # -*- coding: utf-8 -*-
 
-"""It is used by prepare_transactions cloud function to prepare each
+"""This module is where the data is prepared for prediction.
+
+It is used by prepare_transactions cloud function to prepare each
 transaction in order to be ready for prediction.
 The code here must be pretty similar to the feature engineering code used for
 the model training phase.

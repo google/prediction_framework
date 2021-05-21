@@ -1,5 +1,3 @@
-"""This module executes post model stopped acitvities."""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +14,9 @@
 #
 # -*- coding: utf-8 -*-
 
-"""It is used by stop_model cloud function to execute any necessary
+"""This module executes post model stopped acitvities.
+
+It is used by stop_model cloud function to execute any necessary
 post model stopped activity: house keeping, write data into another location...
 """
 

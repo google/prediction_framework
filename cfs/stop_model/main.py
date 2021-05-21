@@ -1,5 +1,3 @@
-"""Google Cloud function to stop the AutoML model."""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +13,8 @@
 # limitations under the License.
 #
 # -*- coding: utf-8 -*-
+
+"""Google Cloud function to stop the AutoML model."""
 
 import base64
 import datetime

@@ -1,5 +1,3 @@
-"""This module builds the query to load the batches of transactions to predict."""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +14,9 @@
 #
 # -*- coding: utf-8 -*-
 
- """Add your imports here i.e
+"""This module builds the query to load the batches of transactions to predict.
+
+Add your imports here i.e
 
  import os
  from google.cloud import bigquery
