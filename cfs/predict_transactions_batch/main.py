@@ -28,9 +28,10 @@ import uuid
 # import numpy as np
 
 from typing import Any, Dict, Optional
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
 from google.api_core import exceptions as google_exception
 from google.cloud.functions_v1.context import Context
-from google.cloud import automl_v1beta1 as automl
 from google.cloud import bigquery
 import google.cloud.logging
 from google.cloud import pubsub_v1
@@ -38,6 +39,7 @@ from google.cloud import firestore_v1 as firestore
 
 
 import pytz
+import datetime
 
 # Set-up logging
 logger = logging.getLogger('predict_transactions_batch')
@@ -82,15 +84,19 @@ MAX_CONCURRENT_BATCH_PREDICT = int(
 BQ_LTV_TABLE_PREFIX = '{}.{}'.format(BQ_LTV_GCP_PROJECT, BQ_LTV_DATASET)
 BQ_LTV_METADATA_TABLE = '{}.{}'.format(BQ_LTV_TABLE_PREFIX,
                                        os.getenv('BQ_LTV_METADATA_TABLE', ''))
+DEPLOYMENT_NAME = os.getenv('DEPLOYMENT_NAME', '')
+SOLUTION_PREFIX = os.getenv('SOLUTION_PREFIX', '')
 
 FST_PREDICT_COLLECTION = '{}_{}_{}'.format(
-    os.getenv('DEPLOYMENT_NAME', ''),
-    os.getenv('SOLUTION_PREFIX', ''),
+    DEPLOYMENT_NAME,
+    SOLUTION_PREFIX,
     os.getenv('FST_PREDICT_COLLECTION', ''))
 COUNTER_DOCUMENT = 'concurrent_document'
 COUNTER_FIELD = 'concurrent_count'
 COUNTER_LAST_INSERT = 'last_insert'
 BATCH_PREDICT_TIMEOUT = int(os.getenv('BATCH_PREDICT_TIMEOUT_SECONDS', ''))  # Counter timeout in seconds
+GCP_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
+API_VERSION = 'v1'
 
 
 def _load_metadata(table):
@@ -105,7 +111,7 @@ def _load_metadata(table):
   """
 
   query = f"""
-      select a.model_date as model_date, b.model_name as model_name from (
+      select a.model_date as model_date, b.model_id as model_id from (
         select format_date('%E4Y%m%d',min(date)) as model_date from (
           select max(PARSE_DATE('%E4Y%m%d', model_date)) as date  FROM {table}
           union all
@@ -113,7 +119,7 @@ def _load_metadata(table):
             where
               DATE_DIFF(CURRENT_DATE(),
                 PARSE_DATE('%E4Y%m%d', model_date), DAY) > 1
-              and model_name is not null
+              and model_id is not null
         )
      ) as a left join {table} as b
      on a.model_date = b.model_date and b.model_date is not null
@@ -135,6 +141,9 @@ def _send_message(project, msg, topic_name):
   json_str = json.dumps(msg)
 
   _ = publisher.publish(topic_path, data=bytes(json_str, 'utf-8')).result()
+  logger.debug(
+      'Message sent to Pub/Sub. Project: %r, topic_path: %r, message: %r',
+      project, topic_path, msg)
 
 
 def _send_message_to_self(project, msg):
@@ -157,8 +166,7 @@ def _send_message_task_enqueue(project, msg):
   _send_message(project, msg, ENQUEUE_TASK_TOPIC)
 
 
-def _build_task_message(data, client_class_module, client_class,
-                        model_api_endpoint, operation_name, success_topic,
+def _build_task_message(data, model_api_endpoint, operation_name, success_topic,
                         error_topic, source_topic, concurrent_slot_document):
   """Creates a JSON object to be sent to the long running operations system.
 
@@ -167,10 +175,6 @@ def _build_task_message(data, client_class_module, client_class,
 
   Args:
     data: A JSON object representing the payload of the original message
-    client_class_module: A string representing the API module containing the
-      client class to poll the GCP long running operation
-    client_class: A string representing the API client class name to poll the
-      GCP long running operation
     model_api_endpoint: A string representing the API endpoint. Different for
       each region
     operation_name: A string representing the id of the operation to poll
@@ -186,14 +190,11 @@ def _build_task_message(data, client_class_module, client_class,
   Returns:
     The incoming msg JSON object containing all the input parameters together.
   """
-  client_class_module = 'google.cloud.automl_v1beta1'
-  client_class = 'AutoMlClient'
-  client_params = {'client_options': {'api_endpoint': model_api_endpoint}}
   return {
-      'operation_name': operation_name,
-      'client_class_module': client_class_module,
-      'client_class': client_class,
-      'client_params': client_params,
+      'status_check_url': f'https://{model_api_endpoint}/{API_VERSION}/{operation_name}',
+      'status_field': 'state',
+      'status_success_values': ['JOB_STATE_SUCCEEDED'],
+      'status_error_values': ['JOB_STATE_FAILED', 'JOB_STATE_EXPIRED'],
       'payload': data,
       'error_topic': error_topic,
       'success_topic': success_topic,
@@ -202,8 +203,7 @@ def _build_task_message(data, client_class_module, client_class,
   }
 
 
-def _enqueue_operation_into_task_poller(gcp_project, data, client_class_module,
-                                        client_class, model_api_endpoint,
+def _enqueue_operation_into_task_poller(gcp_project, data, model_api_endpoint,
                                         operation_name, success_topic,
                                         error_topic, source_topic,
                                         concurrent_slot_document):
@@ -214,10 +214,6 @@ def _enqueue_operation_into_task_poller(gcp_project, data, client_class_module,
   Args:
     gcp_project: A string representing the JSON project to use
     data: A JSON object representing the payload of the original message
-    client_class_module: A string representing the API module containing the
-      client class to poll the GCP long running operation
-    client_class: A string representing the API client class name to poll the
-      GCP long running operation
     model_api_endpoint: A string representing the API endpoint. Different for
       each region
     operation_name: A string representing the id of the operation to poll
@@ -230,7 +226,7 @@ def _enqueue_operation_into_task_poller(gcp_project, data, client_class_module,
     concurrent_slot_document: Firestore document where concurrent slots are
       accounted for.
   """
-  msg = _build_task_message(data, client_class_module, client_class,
+  msg = _build_task_message(data,
                             model_api_endpoint, operation_name, success_topic,
                             error_topic, source_topic, concurrent_slot_document)
 
@@ -268,7 +264,7 @@ def _throttle_message(project, msg, enqueue_topic, success_topic, error_topic,
 
 
 def _start_processing(throttled, msg, model_gcp_project, model_region,
-                      model_name, model_date, model_api_endpoint,
+                      model_id, model_date, model_api_endpoint,
                       client_class_module, client_class, enqueue_topic,
                       success_topic, error_topic, source_topic, gcp_project,
                       delay_in_seconds):
@@ -283,7 +279,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
     msg: JSON object representing the data to process
     model_gcp_project: String representing the name of the GCP project
     model_region: String representing the regions of the prediction model
-    model_name: String representing the name of the prediction model to be
+    model_id: String representing the ID of the prediction model to be
       used
     model_date: String representing the date of the model in YYYYMMDD format
     model_api_endpoint: String representing the API endpoint of the model
@@ -307,22 +303,20 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
   """
 
   logger.debug('Processing. Date: %s', msg['date'])
-
-  db = firestore.Client()
+  db = firestore.Client(project=gcp_project)
   transaction = db.transaction()
 
   if _obtain_batch_predict_slot(transaction, db):
 
     try:
-      operation = _predict(model_name, model_gcp_project, model_region,
+      job_name = _predict(model_id, model_gcp_project, model_region,
             model_api_endpoint, gcp_project,
             f"bq://{msg['bq_input_to_predict_table']}_{msg['date']}",
             f"bq://{msg['bq_output_table'].split('.')[0]}")
 
       
-      _enqueue_operation_into_task_poller(gcp_project, msg, client_class_module,
-                                        client_class, model_api_endpoint,
-                                        operation.name, success_topic,
+      _enqueue_operation_into_task_poller(gcp_project, msg, model_api_endpoint,
+                                        job_name, success_topic,
                                         error_topic, source_topic,
                                         firestore.document.DocumentReference(
                                           FST_PREDICT_COLLECTION,
@@ -354,7 +348,7 @@ def _is_throttled(event):
           not None) and (event.get('attributes').get('forwarded') is not None)
 
 
-def _predict(model_name, model_gcp_project, model_region,
+def _predict(model_id, model_gcp_project, model_region,
             model_api_endpoint, gcp_project, bq_input_uri, bq_output_uri):
   """It calls AutoML tables API to predict a batch os transactions
 
@@ -364,18 +358,35 @@ def _predict(model_name, model_gcp_project, model_region,
   Returns:
     Array containing the AutoML response with the predictions
   """
-  client_options = {"api_endpoint": model_api_endpoint}
-  client = automl.TablesClient(
-      project=model_gcp_project,
-      region=model_region,
-      client_options=client_options)
+  credentials, project = google.auth.default(scopes=[GCP_SCOPE])
 
-  execute = client.batch_predict(
-      bigquery_input_uri=bq_input_uri,
-      bigquery_output_uri=bq_output_uri,
-      model_display_name=model_name)
+  authed_session = AuthorizedSession(credentials)
 
-  return execute.operation
+  request_url = f'https://{model_api_endpoint}/v1/projects/{model_gcp_project}/locations/{model_region}/batchPredictionJobs'
+  request_data = json.dumps({
+      'displayName': f'{DEPLOYMENT_NAME}_{SOLUTION_PREFIX}_batch_predict - {datetime.datetime.now()}',
+      'inputConfig': {
+          'instancesFormat': 'bigquery',
+          'bigquerySource': {
+              'inputUri': bq_input_uri
+          }
+      },
+      'outputConfig': {
+          'predictionsFormat': 'bigquery',
+          'bigqueryDestination': {
+              'outputUri': bq_output_uri
+          }
+      },
+      'model': f'projects/{model_gcp_project}/locations/{model_region}/models/{model_id}'
+  })
+  logger.debug('Creating batch prediction. URL: %r, Data: %r',
+               request_url, request_data)
+  response = authed_session.post(request_url, data=request_data)
+  response_dict = json.loads(response.text)
+  logger.debug('Batch prediction created. Response: %r', response_dict)
+  if 'error' in response_dict:
+    raise Exception(f'Error while creating batch prediction job: {response_dict!r}')
+  return response_dict['name']
 
 
 def main(event: Dict[str, Any],
@@ -396,9 +407,8 @@ def main(event: Dict[str, Any],
 
   model_gcp_project = MODEL_GCP_PROJECT
   metadata_df = _load_metadata(BQ_LTV_METADATA_TABLE)
-
   model_date = str(metadata_df['model_date'][0])
-  model_name = str(metadata_df['model_name'][0])
+  model_id = str(metadata_df['model_id'][0])
   model_region = MODEL_REGION
   model_api_endpoint = MODEL_AUTOML_API_ENDPOINT
 
@@ -416,7 +426,7 @@ def main(event: Dict[str, Any],
   try:
 
     _start_processing(
-        _is_throttled(event), msg, model_gcp_project, model_region, model_name,
+        _is_throttled(event), msg, model_gcp_project, model_region, model_id,
         model_date, model_api_endpoint, client_class_module,
         client_class, enqueue_topic, success_topic, error_topic, source_topic,
         gcp_project, delay_in_seconds)
@@ -494,11 +504,11 @@ def _throttled_call():
 
   msg_data = {
       'bq_input_to_predict_table':
-          'ltv-framework.ltv_jaimemm.prepared_new_customers_periodic_transactions',
+          'decent-fulcrum-316414.test.filtered_periodic_transactions',
       'bq_output_table':
-          'ltv-framework.ltv_jaimemm.predictions',
+          'decent-fulcrum-316414.test.predictions',
       'date':
-          '20210303'
+          '20210401'
   }
 
   main(

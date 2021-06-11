@@ -18,16 +18,30 @@
 
 import base64
 import json
+import logging
 import os
+import sys
 
 from typing import Any, Dict, Optional
 from google.cloud.functions_v1.context import Context
 from google.cloud import bigquery
+import google.cloud.logging
 
 from custom_functions import hook_get_load_predictions_query
 from custom_functions import hook_get_bq_schema
 from custom_functions import hook_apply_formulas
 from custom_functions import hook_on_completion
+
+# Set-up logging
+logger = logging.getLogger('predict_transactions_batch')
+logger.setLevel(logging.DEBUG)
+handler = None
+if os.getenv('LOCAL_LOGGING'):
+  handler = logging.StreamHandler(sys.stderr)
+else:
+  client = google.cloud.logging.Client()
+  handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
+logger.addHandler(handler)
 
 BQ_LTV_GCP_PROJECT = str(os.getenv("BQ_LTV_GCP_PROJECT", ""))
 BQ_LTV_DATASET = str(os.getenv("BQ_LTV_DATASET", ""))
@@ -46,7 +60,7 @@ def _load_data_from_bq(query):
   """
   job_config = bigquery.job.QueryJobConfig()
 
-  return bigquery.Client().query(query, job_config=job_config).to_dataframe()
+  return bigquery.Client(project=BQ_LTV_GCP_PROJECT).query(query, job_config=job_config).to_dataframe()
 
 
 def _write_to_bigquery(df, table_name):
@@ -59,7 +73,7 @@ def _write_to_bigquery(df, table_name):
 
   dataframe = df
 
-  client = bigquery.Client()
+  client = bigquery.Client(project=BQ_LTV_GCP_PROJECT)
 
   job_config = bigquery.LoadJobConfig()
   job_config.write_disposition = "WRITE_TRUNCATE"
@@ -76,14 +90,12 @@ def _write_to_bigquery(df, table_name):
 
 def _delete_dataset(dataset):
   """Deletes the dataset specified by the dataset parameter.
-
     Args:
       dataset:  The name of the dataset to be deleted.
   """
-
   client = bigquery.Client()
   client.delete_dataset(
-    dataset, delete_contents=True, not_found_ok=True
+      dataset, delete_contents=True, not_found_ok=True
   )
 
 def main(event: Dict[str, Any], context=Optional[Context]):
@@ -104,11 +116,11 @@ def main(event: Dict[str, Any], context=Optional[Context]):
   data = base64.b64decode(event["data"]).decode("utf-8")
   msg = json.loads(data)
 
-  input_dataset = (msg['operation']['metadata']
-                   ['batchPredictDetails']['outputInfo']['bigqueryOutputDataset']).split("://")[1]
-  input_table = f"""{input_dataset}.predictions"""
+  input_dataset = (msg['operation']
+      ['outputInfo']['bigqueryOutputDataset']).split("://")[1]
+  input_table = f"""{input_dataset}.predictions_*"""
 
-  output_table = f"{BQ_LTV_GCP_PROJECT}.{BQ_LTV_DATASET}.{BQ_LTV_PREDICTIONS_TABLE}_{msg['date']}"
+  output_table = f'{BQ_LTV_GCP_PROJECT}.{BQ_LTV_DATASET}.{BQ_LTV_PREDICTIONS_TABLE}_{msg["date"]}'
 
   query = hook_get_load_predictions_query(input_table)
   _write_to_bigquery(
@@ -118,45 +130,7 @@ def main(event: Dict[str, Any], context=Optional[Context]):
 
 
 def _test():
-  message = {
-      "bq_output_table":
-          "ltv-framework",
-      "bq_input_to_predict_table":
-          "ltv-framework.ltv_jaimemm.prepared_new_customers_periodic_transactions",
-      "date":
-          "20210303",
-      "operation": {
-          "name":
-              "projects/988912752389/locations/eu/operations/TBL8979557532418703360",
-          "metadata": {
-              "@type":
-                  "type.googleapis.com/google.cloud.automl.v1beta1.OperationMetadata",
-              "createTime":
-                  "2021-03-05T17:57:54.251058Z",
-              "updateTime":
-                  "2021-03-05T18:02:43.797899Z",
-              "batchPredictDetails": {
-                  "inputConfig": {
-                      "bigquerySource": {
-                          "inputUri":
-                              "bq://ltv-framework.ltv_jaimemm.prepared_new_customers_periodic_transactions_20210303"
-                      }
-                  },
-                  "outputInfo": {
-                      "bigqueryOutputDataset":
-                          "bq://ltv-framework.prediction_training_data_20200605_0608_2021_03_05T09_57_54_169Z"
-                  }
-              }
-          },
-          "done":
-              "true",
-          "response": {
-              "@type":
-                  "type.googleapis.com/google.cloud.automl.v1beta1.BatchPredictResult"
-          }
-      }
-  }
-  msg_data = base64.b64encode(bytes(json.dumps(message).encode("utf-8")))
+  msg_data = base64.b64encode(bytes('{"payload": {"bq_input_to_predict_table": "decent-fulcrum-316414.test.filtered_periodic_transactions", "bq_output_table": "decent-fulcrum-316414.test.predictions", "date": "20210401", "operation": {"name": "projects/988912752389/locations/europe-west4/batchPredictionJobs/7138777155428679680", "displayName": "pablogil_test_pltv_batch_predict - 2021-06-17 13:27:04.054958", "model": "projects/988912752389/locations/europe-west4/models/7662206262901211136", "inputConfig": {"instancesFormat": "bigquery", "bigquerySource": {"inputUri": "bq://decent-fulcrum-316414.test.filtered_periodic_transactions_20210401"}}, "outputConfig": {"predictionsFormat": "bigquery", "bigqueryDestination": {"outputUri": "bq://decent-fulcrum-316414"}}, "dedicatedResources": {"machineSpec": {"machineType": "n1-highmem-8"}, "startingReplicaCount": 20, "maxReplicaCount": 20}, "manualBatchTuningParameters": {"batchSize": 100}, "outputInfo": {"bigqueryOutputDataset": "bq://decent-fulcrum-316414.prediction_automl_training_data_20200605_0608_2021_06_17T06_27_04_428Z"}, "state": "JOB_STATE_SUCCEEDED", "completionStats": {"successfulCount": "280"}, "createTime": "2021-06-17T13:27:04.571081Z", "startTime": "2021-06-17T13:27:05.550439Z", "endTime": "2021-06-17T13:44:29Z", "updateTime": "2021-06-17T13:45:41.481342Z"}}, "status_check_url": "https://europe-west4-aiplatform.googleapis.com/v1/projects/988912752389/locations/europe-west4/batchPredictionJobs/7138777155428679680", "success_topic": "pablogil_test.pltv.post_process_batch_predictions", "concurrent_slot_document": "pablogil_test_pltv_prediction_tracking/concurrent_document", "status_success_values": ["JOB_STATE_SUCCEEDED"], "status_error_values": ["JOB_STATE_FAILED", "JOB_STATE_EXPIRED"], "inserted_timestamp": "0", "error_topic": "pablogil_test.pltv.", "expiration_timestamp": "0", "status_field": "state", "updated_timestamp": "0", "source_topic": "pablogil_test.pltv.predict_transactions_batch"}'.encode("utf-8")))
 
   main(
       event={

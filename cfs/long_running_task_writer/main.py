@@ -27,12 +27,17 @@ from google.cloud import firestore
 from google.cloud.functions_v1.context import Context
 import google.cloud.logging
 import pytz
+import sys
 
 # Set-up logging
-client = google.cloud.logging.Client()
-handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
-logger = logging.getLogger('cloudLogger')
-logger.setLevel(logging.DEBUG) # defaults to WARN
+logger = logging.getLogger('predict_transactions_batch')
+logger.setLevel(logging.DEBUG)
+handler = None
+if os.getenv('LOCAL_LOGGING'):
+  handler = logging.StreamHandler(sys.stderr)
+else:
+  client = google.cloud.logging.Client()
+  handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
 logger.addHandler(handler)
 
 
@@ -78,7 +83,7 @@ def main(event: Dict[str, Any],
   now = datetime.datetime.now(pytz.utc)
   msg['inserted_timestamp'] = now
 
-  if msg['operation_name'] == 'Delayed Forwarding':
+  if msg.get('operation_name', None) == 'Delayed Forwarding':
     delta = datetime.timedelta(seconds=int(msg['delay_in_seconds']))
   else:
     delta = datetime.timedelta(hours=DISCARD_TASKS_OLDER_THAN_HOURS)
@@ -91,14 +96,7 @@ def main(event: Dict[str, Any],
 
 if __name__ == '__main__':
   msg_data = {
-      'payload': {
-          'runTime': '2020-06-20T02:00:00Z'
-      },
-      'operation_name': 'Delayed Forwarding',
-      'delay_in_seconds': 120,
-      'error_topic': '',
-      'success_topic': 'test.pltv.periodic_extract_ready',
-      'source_topic': 'test.pltv.periodic_extract_ready'
+      'status_check_url': 'https://europe-west4-aiplatform.googleapis.com/v1/projects/988912752389/locations/europe-west4/batchPredictionJobs/4741173303807311872', 'status_field': 'state', 'status_success_values': ['JOB_STATE_SUCCEEDED'], 'status_error_values': ['JOB_STATE_FAILED', 'JOB_STATE_EXPIRED'], 'payload': {'bq_input_to_predict_table': 'decent-fulcrum-316414.test.filtered_periodic_transactions', 'bq_output_table': 'decent-fulcrum-316414.test.predictions', 'date': '20210401'}, 'error_topic': 'pablogil_test.pltv.', 'success_topic': 'pablogil_test.pltv.post_process_batch_predictions', 'source_topic': 'pablogil_test.pltv.predict_transactions_batch', 'concurrent_slot_document': 'pablogil_test_pltv_prediction_tracking/concurrent_document'
   }
 
   main(

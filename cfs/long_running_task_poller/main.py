@@ -25,18 +25,25 @@ import os
 import sys
 
 from typing import Any, Dict, Optional
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
 from google.cloud.functions_v1.context import Context
 from google.cloud import firestore_v1 as firestore
 import google.cloud.logging
 from google.cloud import pubsub_v1
 from google.protobuf import json_format
 import pytz
+import sys
 
 # Set-up logging
-client = google.cloud.logging.Client()
-handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
-logger = logging.getLogger('cloudLogger')
-logger.setLevel(logging.DEBUG) # defaults to WARN
+logger = logging.getLogger('predict_transactions_batch')
+logger.setLevel(logging.DEBUG)
+handler = None
+if os.getenv('LOCAL_LOGGING'):
+  handler = logging.StreamHandler(sys.stderr)
+else:
+  client = google.cloud.logging.Client()
+  handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
 logger.addHandler(handler)
 
 COLLECTION_NAME = '{}_{}_{}'.format(
@@ -48,6 +55,7 @@ DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
 
 MAX_TASKS_PER_POLL = int(os.getenv('MAX_TASKS_PER_POLL', '5'))
 MAX_TASKS_PER_POLL_MULTIPLIER = 10
+GCP_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 
 
 def _send_message(project, msg, topic):
@@ -62,6 +70,12 @@ def _send_message(project, msg, topic):
   topic_path = publisher.topic_path(project, topic)
   msg_json = json.dumps(msg['payload'])
 
+  logger.debug(
+      'Publishing to PubSub. Project: %r, topic_path: %r, message: %r',
+      project,
+      topic_path,
+      msg
+  )
   publisher.publish(
       topic_path, data=bytes(msg_json, 'utf-8'), forwarded='1').result()
 
@@ -106,7 +120,7 @@ def _load_tasks(project,
   Returns:
     An arrayof lists.
   """
-  db = firestore.Client(project)
+  db = firestore.Client(project=project)
 
   return db.collection(collection).order_by(
       'updated_timestamp',
@@ -144,7 +158,7 @@ def _delete_task(project, collection, task):
     collection: A string representing the firestore collection
     task: The firestore document to be deleted
   """
-  db = firestore.Client(project)
+  db = firestore.Client(project=project)
   _decrease_counter(db, task.to_dict())
   db.collection(collection).document(task.id).delete()
 
@@ -157,7 +171,11 @@ def _update_task_timestamp(project, collection, task):
     collection: A string representing the firestore collection
     task: The firestore document to be updated
   """
-  db = firestore.Client(project)
+  logger.debug(
+      'Updating task timestamp. Project: %r, collection: %r, task: %r',
+      project, collection, task
+  )
+  db = firestore.Client(project=project)
   db.collection(collection).document(task.id).update(
       {'updated_timestamp': datetime.datetime.now(pytz.utc)})
 
@@ -202,7 +220,7 @@ def _it_is_expired(task, current_date_time):
 
   """
 
-  if task['operation_name'] != 'Delayed Forwarding':
+  if task.get('operation_name', None) != 'Delayed Forwarding':
     return task['expiration_timestamp'] < current_date_time
   else:
     return False
@@ -260,7 +278,7 @@ def _process_task(project, collection, task, current_date_time):
     _send_to_error(project, d_task)
     _delete_task(project, collection, task)
   else:
-    operation_name = d_task['operation_name']
+    operation_name = d_task.get('operation_name', None)
     if operation_name == 'Delayed Forwarding':
       logger.info('Delayed forwarding: %s', d_task)
       if _it_is_time(d_task, current_date_time):
@@ -270,25 +288,51 @@ def _process_task(project, collection, task, current_date_time):
       else:
         _update_task_timestamp(project, collection, task)
     else:
-      module = importlib.import_module(d_task['client_class_module'])
-      class_ = getattr(module, d_task['client_class'])
-      instance = class_(**d_task['client_params'])
-      # pylint: disable=protected-access
-      op = instance.transport._operations_client.get_operation(operation_name)
-      # pylint: enable=protected-access
-      if op.done:
-        logger.info('Task done: %s', d_task)
-        if hasattr(op, 'response'):
-          d_task['payload']['operation'] = json_format.MessageToDict(op)
-          _send_to_success(project, d_task)
-        else:
-          _send_to_error(project, d_task)
+      client_class_module = d_task.get('client_class_module', None)
+      if client_class_module:
+        module = importlib.import_module(client_class_module)
+        class_ = getattr(module, d_task['client_class'])
+        instance = class_(**d_task['client_params'])
+        # pylint: disable=protected-access
+        op = instance.transport._operations_client.get_operation(operation_name)
+        # pylint: enable=protected-access
+        if op.done:
+          logger.info('Task done: %s', d_task)
+          if hasattr(op, 'response'):
+            d_task['payload']['operation'] = json_format.MessageToDict(op)
+            _send_to_success(project, d_task)
+          else:
+            _send_to_error(project, d_task)
 
-        _delete_task(project, collection, task)
-        return 1
+          _delete_task(project, collection, task)
+          return 1
+        else:
+          logger.debug('Task not done yet: %s', d_task)
+          _update_task_timestamp(project, collection, task)
       else:
-        logger.debug('Task not done yet: %s', d_task)
-        _update_task_timestamp(project, collection, task)
+        credentials, _ = google.auth.default(scopes=[GCP_SCOPE])
+
+        authed_session = AuthorizedSession(credentials)
+
+        response = authed_session.get(d_task['status_check_url'])
+        response_dict = json.loads(response.text)
+        status = response_dict[d_task['status_field']]
+        if status in d_task['status_success_values']:
+          logger.info('Task completed successfully: %r', d_task)
+          d_task['payload']['operation'] = response_dict
+          _send_to_success(project, d_task)
+          _delete_task(project, collection, task)
+          return 1
+        elif status in d_task['status_error_values']:
+          logger.info('Task completed with errors: %r', d_task)
+          _send_to_error(project, d_task)
+          _delete_task(project, collection, task)
+          return 1
+        else:
+          logger.info('Task not finished yet: %r', d_task)
+          _update_task_timestamp(project, collection, task)
+
+
     return 0
 
 
@@ -377,7 +421,8 @@ def _create_data():
   main(event=None, context=None)
 
 def test_decrease_counter():
-  _decrease_counter(firestore.Client(), {'concurrent_slot_document': 'prediction_tracking/concurrent_document'})
+  _decrease_counter(firestore.Client(project=DEFAULT_GCP_PROJECT), {'concurrent_slot_document': 'prediction_tracking/concurrent_document'})
 
 if __name__ == '__main__':
-  _create_data()
+  logger.debug('DEFAULT_GCP_PROJECT: %r', DEFAULT_GCP_PROJECT)
+  main(event=None, context=None)

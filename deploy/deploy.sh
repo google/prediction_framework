@@ -214,13 +214,13 @@ function set_service_account_permissions {
 
 }
 function write_metadata_csv {
-  echo ",$MODEL_DATE,$MODEL_NAME" > ./_temp_metadata.csv
+  echo ",$MODEL_DATE,$MODEL_ID" > ./_temp_metadata.csv
 }
 function populate_bq {
   write_metadata_csv
   METADATA=$(bq --project_id="$BQ_LTV_GCP_PROJECT" load  "$BQ_LTV_DATASET.$BQ_LTV_METADATA_TABLE" \
    ./_temp_metadata.csv \
-   export_date:STRING,model_date:STRING,model_name:STRING)
+   export_date:STRING,model_date:STRING,model_id:STRING)
   if [[ $? -ne 0 ]]; then
     echo "Error populating metadata BQ table. Exiting!"
     exit -1

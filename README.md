@@ -128,7 +128,7 @@ Field name  | Type   | Mode
 ----------- | ------ | --------
 export_date | STRING | NULLABLE
 model_date  | STRING | NULLABLE
-model_name  | STRING | NULLABLE
+model_id  | STRING | NULLABLE
 
 Where:
 
@@ -136,14 +136,14 @@ Where:
     It will be used for automatic model training in the future.
 *   `model_date` : indicates the data used to train the model. This correlates
     with the features table.
-*   `model_name`: the name of the model in AutoML
+*   `model_id`: the ID of the AutoML model
 
 Example:
 
-Row | export_date | model_date | model_name                  |     |
+Row | export_date | model_date | model_id                  |     |
 --- | ----------- | ---------- | --------------------------- | ---
 1   | 20200605    | null       | null                        |
-6   | null        | 20200605   | training_data_20200605_0608 |
+6   | null        | 20200605   | 7662206262901211136         |
 
 #### `training_data_features_YYYYMMDD`
 

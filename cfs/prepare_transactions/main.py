@@ -79,7 +79,7 @@ def _load_metadata(table):
 
   query = f"""SELECT
               a.model_date AS model_date,
-              b.model_name AS model_name
+              b.model_id AS model_id
             FROM (
               SELECT
                 FORMAT_DATE('%E4Y%m%d',MIN(date)) AS model_date
@@ -98,7 +98,7 @@ def _load_metadata(table):
                 WHERE
                   DATE_DIFF(CURRENT_DATE(),PARSE_DATE('%E4Y%m%d',
                       model_date), DAY) > 1
-                  AND model_name IS NOT NULL ) ) AS a
+                  AND model_id IS NOT NULL ) ) AS a
             LEFT JOIN
               {table} AS b
             ON
@@ -346,7 +346,6 @@ def main(event: Dict[str, Any],
 
         metadata_df = _load_metadata(BQ_LTV_METADATA_TABLE)
         model_date = str(metadata_df['model_date'][0])
-        model_name = str(metadata_df['model_name'][0])
 
         df = _load_tx_data_from_bq(input_bq_transactions_table)
         final_df = df

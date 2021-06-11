@@ -17,3 +17,4 @@ functions-framework
 google-cloud-bigquery[pandas,pyarrow]
 google-cloud-pubsub
 google-cloud-bigquery_datatransfer
+google-cloud-logging
