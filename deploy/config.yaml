@@ -29,6 +29,8 @@ DEFAULT_GCP_REGION: 'europe-west1'
 BQ_DATA_SOURCE_GCP_PROJECT: 'my_datasource_project'
 BQ_DATA_SOURCE_DATA_SET: 'my_data_set'
 BQ_DATA_SOURCE_TABLES: 'just_table_name'
+# If data source table is sharded by date, set it to Y
+BQ_DATA_SOURCE_IS_SHARDED: 'N'
 
 # BQ settings for LTV process
 # =====================================================================

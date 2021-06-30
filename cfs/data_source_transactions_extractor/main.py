@@ -42,6 +42,8 @@ BQ_DATA_SOURCE_DATA_SET = str(os.getenv('BQ_DATA_SOURCE_DATA_SET', ''))
 BQ_DATA_SOURCE_TABLES = str(os.getenv('BQ_DATA_SOURCE_TABLES',
                                       ''))  # 'ga_sessions'
 
+BQ_DATA_SOURCE_IS_SHARDED = str(os.getenv('BQ_DATA_SOURCE_IS_SHARDED', ''))
+
 BQ_LTV_TRANSFER_PROJECT_ID = str(os.getenv('BQ_LTV_TRANSFER_PROJECT_ID', ''))
 
 BQ_LTV_PERIODIC_TX_TRANSFER_ID = str(os.getenv('BQ_LTV_PERIODIC_TX_TRANSFER_ID', ''))
@@ -96,7 +98,8 @@ def _get_date(timestamp):
 
 def _check_data_source_table(data_source_project, data_source_data_set,
                              ltv_project, ltv_dataset, input_table,
-                             intermediate_table, current_date, day_before):
+                             input_is_sharded, intermediate_table,
+                             current_date, day_before):
   """Checks if the data source table is available & no extract table generated.
 
 
@@ -119,10 +122,15 @@ def _check_data_source_table(data_source_project, data_source_data_set,
     df['result'][0]==1: both data source and intermediate table exists
     df['result'][0]==2: data source table does not exist
   """
+  final_input_table = (
+    '%s_%s!' % (input_table, day_before)
+    if input_is_sharded == 'Y'
+    else input_table)
+
   query = f"""
       if exists(SELECT size_bytes FROM
         `{data_source_project}.{data_source_data_set}.__TABLES__`
-      where table_id = "{input_table}_{day_before}") then
+      where table_id = "{final_input_table}") then
         if (exists(
             SELECT size_bytes FROM `{ltv_project}.{ltv_dataset}.__TABLES__`
             where  table_id = "{intermediate_table}_{current_date}")) then
@@ -208,6 +216,7 @@ def main(event: Dict[str, Any],
   df = _check_data_source_table(BQ_DATA_SOURCE_GCP_PROJECT,
                                 BQ_DATA_SOURCE_DATA_SET, BQ_LTV_GCP_PROJECT,
                                 BQ_LTV_DATASET, BQ_DATA_SOURCE_TABLES,
+                                BQ_DATA_SOURCE_IS_SHARDED,
                                 BQ_LTV_ALL_PERIODIC_TX_TABLE, publish_date,
                                 day_before)
 

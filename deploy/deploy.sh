@@ -41,10 +41,6 @@ function deploy_pltv_scaffolding {
   echo "**************************************************************"
   echo "* Account Permissions Set.                                   *"
   echo "**************************************************************"
-  deploy_cloud_functions
-  echo "**************************************************************"
-  echo "* Cloud Functions Successfully Deployed.                     *"
-  echo "**************************************************************"
   create_schedulers
   echo "**************************************************************"
   echo "* Schedulers Successfully Deployed.                          *"
@@ -63,6 +59,9 @@ function deploy_pltv_scaffolding {
   echo "**************************************************************"
   echo "* BQ Elements Successfully Deployed.                         *"
   echo "**************************************************************"
+  deploy_cloud_functions
+  echo "**************************************************************"
+  echo "* Cloud Functions Successfully Deployed.                     *"
   echo "**************************************************************"
   echo "**************************************************************"
   echo " IMPORTANT: run the post deployment tasks explained in the doc!"
