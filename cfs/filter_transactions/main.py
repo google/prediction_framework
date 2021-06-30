@@ -57,7 +57,6 @@ BQ_LTV_FILTERED_TX_TABLE = '{}.{}'.format(
 BQ_LTV_PREDICTIONS_TABLE_ONLY = os.getenv('BQ_LTV_PREDICTIONS_TABLE', '')
 
 MODEL_NEW_CLIENT_DAYS = os.getenv('MODEL_NEW_CLIENT_DAYS', '')
-MODEL_PREDICTION_TYPE = os.getenv('MODEL_PREDICTION_TYPE', '')
 
 OUTPUT_BQ_PREPARED_TX_DATA_TABLE_PREFIX = BQ_LTV_FILTERED_TX_TABLE
 
@@ -72,22 +71,6 @@ ENQUEUE_TASK_TOPIC = "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
 
 DELAY_IN_SECONDS = int(
     os.getenv('DELAY_FILTER_TRANSACTIONS_PERIODIC_IN_SECONDS', '-1'))
-
-
-
-def _get_outbound_topic():
-  """Resolves the rigth outbound topic depending on the prediction strategy.
-
-  Returns:
-    The string representing the topic to send the outbound message to.
-  """  
-
-  if MODEL_PREDICTION_TYPE == 'BATCH':
-    return "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
-                             os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', ''))
-  else:
-    return "{}.{}.{}".format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
-                             os.getenv('PREDICT_TRANSACTIONS_TOPIC', ''))
 
 
 def _load_data_from_bq(table, current_date):
@@ -263,7 +246,9 @@ def main(event: Dict[str, Any],
     inbound_topic = INBOUND_TOPIC
     error_topic = ''
     source_topic = inbound_topic
-    outbound_topic = _get_outbound_topic()
+    outbound_topic = "{}.{}.{}".format(
+        DEPLOYMENT_NAME, SOLUTION_PREFIX,
+        os.getenv('PREDICT_TRANSACTIONS_BATCH_TOPIC', ''))
     enqueue_topic = ENQUEUE_TASK_TOPIC
     delay = DELAY_IN_SECONDS
 

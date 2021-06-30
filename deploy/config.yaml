@@ -47,8 +47,6 @@ BQ_LTV_TRANSFER_REGION: 'europe'
 # =====================================================================
 # The date when the model was generated. It will be used to label metadata
 MODEL_DATE: 'YYYYMMDD'
-# Prediction type. Allowed values LIVE or BATCH
-MODEL_PREDICTION_TYPE: BATCH
 # The model ID
 MODEL_ID: 'my_model_id'
 # The project where the model exists
@@ -60,16 +58,12 @@ MODEL_REGION: 'europe-west4'
 MODEL_NEW_CLIENT_DAYS: '365'
 # The endpoint for automl i.e eu-automl.googleapis.com:443 | automl.googleapis.com:443
 MODEL_AUTOML_API_ENDPOINT: 'europe-west4-aiplatform.googleapis.com'
-# Blocks or enable the post stop model code execution
-MODEL_POST_STOP_ACTION: 'Y'
 # The number of rows to read at a time.Play with the value if you find API quota exceeded
 MAX_PREDICTION_BATCH_SIZE: '500'
 
 
 # Polling & throttling settings
 # =====================================================================
-# How often the stop model will try to stop the model
-MODEL_STOPPER_POLLER_CONFIG: '0 \*/1 \* \* \*'
 # How often the process will look for available periodic transaction table
 DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG: '0 \*/1 \* \* \*'
 # How often the long running task poller will pick up tasks
@@ -121,10 +115,7 @@ THROTTLER_TOPIC: 'throttle'
 DATA_EXTRACTED_TOPIC: 'data_extract_ready'
 DATA_PREPARED_TOPIC: 'data_prepared'
 PREDICT_TRANSACTIONS_BATCH_TOPIC: 'predict_transactions_batch'
-PREDICT_TRANSACTIONS_TOPIC: 'predict_transactions'
-PREDICT_TRANSACTION_TOPIC: 'predict_transaction'
 ENQUEUE_TASK_TOPIC: 'enqueue_task'
-STOP_MODEL_TOPIC: 'it_is_stop_model_time'
 POST_PROCESS_BATCH_PREDICTIONS_TOPIC: 'post_process_batch_predictions'
 
 #Firestore prefixes

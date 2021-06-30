@@ -22,7 +22,7 @@ HELPERS_PATH="../../deploy/helpers.sh"
 source "$HELPERS_PATH"
 eval "$(parse_yaml $CONFIG_PATH)"
 
-TOPIC_NAME=$PREDICT_TRANSACTIONS_TOPIC
+TOPIC_NAME=$PREDICT_TRANSACTIONS_BATCH_TOPIC
 
 gcloud config set project "$DEFAULT_GCP_PROJECT"
 gcloud pubsub topics publish "$TOPIC_NAME" \

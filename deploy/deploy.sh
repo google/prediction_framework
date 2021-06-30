@@ -120,54 +120,35 @@ function deploy_cloud_functions {
   done
 }
 function create_schedulers {
-    SC1=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_model_stopper \
-    --schedule "${MODEL_STOPPER_POLLER_CONFIG//\\/}" \
-    --time-zone "$TIMEZONE" \
-    --topic "$DEPLOYMENT_NAME.$SOLUTION_PREFIX.$STOP_MODEL_TOPIC" \
-    --message-body "It's Model Stop Time!" \
-    --format "none")
-    echo "$SC1"
-    ERROR=$(echo "$SC1" | grep -Po "error")
-    echo "$ERROR"
-
-    if [[ "$ERROR" == "error" ]]; then
-      EXISTS=$(echo "$SC1" |  grep -Po "exists")
-      if [[ "$EXISTS" == "exists" ]]; then
-          echo "INFO: Stopper scheduler already exists."
-      else
-          echo "$SC1"
-          exit -1
-      fi
-    fi
-    SC2=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_periodic_transactions_poller \
+    SC_TX_POLLER=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_periodic_transactions_poller \
     --schedule "${DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG//\\/}" \
     --time-zone "$TIMEZONE" \
     --topic "$DEPLOYMENT_NAME.$SOLUTION_PREFIX.$POLLING_PERIODIC_TX_TOPIC" \
     --message-body "It's Poll Tx Time!" \
     --format "none")
-    ERROR=$(echo "$SC2" | grep -Po "error")
+    ERROR=$(echo "$SC_TX_POLLER" | grep -Po "error")
     if [[ "$ERROR" == "error" ]]; then
-      EXISTS=$(echo "$SC2" | grep -Po "exists")
+      EXISTS=$(echo "$SC_TX_POLLER" | grep -Po "exists")
       if [[ "$EXISTS" == "exists" ]]; then
           echo "INFO: periodic tx scheduler already exists."
       else
-          echo "$SC2"
+          echo "$SC_TX_POLLER"
           exit -1
       fi
     fi
-    SC3=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_long_running_tasks_poller \
+    SC_TASK_POLLER=$(gcloud scheduler jobs create pubsub "$DEPLOYMENT_NAME"_"$SOLUTION_PREFIX"_long_running_tasks_poller \
     --schedule "${LONG_RUNNING_TASKS_POLLER_CONFIG//\\/}" \
     --time-zone "$TIMEZONE" \
     --topic "$DEPLOYMENT_NAME.$SOLUTION_PREFIX.$POLLING_LONG_RUNNING_TASKS_TOPIC" \
     --message-body "It's Poll Task Time!" \
     --format "none")
-    ERROR=$(echo "$SC3" | grep -Po "error")
+    ERROR=$(echo "$SC_TASK_POLLER" | grep -Po "error")
     if [[ "$ERROR" == "error" ]]; then
-      EXISTS=$(echo "$SC3" | grep -Po "exists")
+      EXISTS=$(echo "$SC_TASK_POLLER" | grep -Po "exists")
       if [[ "$EXISTS" == "exists" ]]; then
           echo "INFO: Long Running Tasks scheduler already exists."
       else
-          echo "$SC3"
+          echo "$SC_TASK_POLLER"
           exit -1
       fi
     fi

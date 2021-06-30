@@ -335,16 +335,17 @@ Set scheduler settings:
 
 ```
 TIMEZONE: the timezone used to create the schedulers.
-MODEL_STOPPER_POLLER_CONFIG: cron syntax for model stopper scheduler.
 DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG: cron syntax for model data source extractor scheduler.
 LONG_RUNNING_TASKS_POLLER_CONFIG: cron syntax for polling waiting tasks.
 DISCARD_TASKS_OLDER_THAN_HOURS: expiration time in hours for the waiting tasks
 ```
 
-Sample values: `MODEL_STOPPER_POLLER_CONFIG: '0 \*/1 \* \* \*'
+Sample values: 
+```
 DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG: '0 \*/1 \* \* \*'
 LONG_RUNNING_TASKS_POLLER_CONFIG: '\*/2 \* \* \* \*'
-DISCARD_TASKS_OLDER_THAN_HOURS: '23' TIMEZONE: 'Europe/Madrid'`
+DISCARD_TASKS_OLDER_THAN_HOURS: '23' TIMEZONE: 'Europe/Madrid'
+```
 
 Set the amount of minutes the stopper has to consider as inactivity, after the
 latest prediction task activity:
