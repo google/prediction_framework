@@ -319,6 +319,8 @@ resides. MODEL_REGION: the region of the project where the model resides.
 MODEL_AUTOML_API_ENDPOINT: the endpoint according to the region.
 MODEL_NEW_CLIENT_DAYS: number of days which will define the cohort for new
 customers.
+MODEL_DATE: Date where the model was trained in YYYYMMDD format. It will be used
+to label metadata.
 ```
 
 Sample values:
@@ -326,6 +328,7 @@ Sample values:
 ```MODEL_GCP_PROJECT:
 MODEL_AUTOML_API_ENDPOINT: 'eu-automl.googleapis.com:443'
 MODEL_NEW_CLIENT_DAYS: '365'
+MODEL_DATE: '20210601'
 ```
 
 Set scheduler settings:
