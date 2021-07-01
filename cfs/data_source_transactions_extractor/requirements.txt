@@ -16,6 +16,7 @@
 functions-framework
 google-cloud-bigquery
 google-cloud-pubsub
-google-cloud-bigquery_datatransfer
+google-cloud-bigquery_datatransfer>=3.2.0,<4.0.0
+google-cloud-logging
 pandas
 pyarrow

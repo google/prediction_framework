@@ -19,6 +19,7 @@
 import base64
 import datetime
 import json
+import logging
 import os
 import sys
 import time
@@ -28,6 +29,18 @@ from google.cloud.functions_v1.context import Context
 from google.api_core import datetime_helpers
 from google.cloud import bigquery
 from google.cloud import bigquery_datatransfer_v1
+import google.cloud.logging
+
+# Set-up logging
+logger = logging.getLogger('predict_transactions_batch')
+logger.setLevel(logging.DEBUG)
+handler = None
+if os.getenv('LOCAL_LOGGING'):
+  handler = logging.StreamHandler(sys.stderr)
+else:
+  client = google.cloud.logging.Client()
+  handler = google.cloud.logging.handlers.CloudLoggingHandler(client)
+logger.addHandler(handler)
 
 DEFAULT_GCP_PROJECT = str(os.getenv('DEFAULT_GCP_PROJECT', ''))
 
@@ -143,7 +156,7 @@ def _check_data_source_table(data_source_project, data_source_data_set,
       end if;
      """
 
-  return bigquery.Client().query(query).to_dataframe().reset_index(drop=True)
+  return bigquery.Client(project=ltv_project).query(query).to_dataframe().reset_index(drop=True)
 
 
 def _extract_periodic_transactions(transfer_project_id, transfer_id, region,
@@ -158,17 +171,22 @@ def _extract_periodic_transactions(transfer_project_id, transfer_id, region,
   """
   try:
     client = bigquery_datatransfer_v1.DataTransferServiceClient()
-
-    parent = client.location_transfer_config_path(transfer_project_id, region,
-                                                  transfer_id)
-    start_time = bigquery_datatransfer_v1.types.Timestamp(seconds=seconds)
+    parent = f'projects/{transfer_project_id}/locations/{region}/transferConfigs/{transfer_id}'
+    run_time = google.protobuf.timestamp_pb2.Timestamp()
+    run_time.FromSeconds(seconds)
+    logger.debug('Sending request for transfer: %r', parent)
+    request = bigquery_datatransfer_v1.types.StartManualTransferRunsRequest(
+        {
+            'requested_run_time': run_time,
+            'parent': parent
+    })
     response = client.start_manual_transfer_runs(
-        parent, requested_run_time=start_time, timeout=300.00)
+        request)
     print('Executing transfer_id: {} run_id: {}'.format(
         parent, str(response.runs[0].name)))
   # pylint: disable=broad-except
   except Exception:
-    print('Exception {} occurred'.format(sys.exc_info()[0]))
+    logging.exception('Exception occurred')
   # pylint: enable=broad-except
 
 
