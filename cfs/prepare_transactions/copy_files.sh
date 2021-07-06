@@ -15,4 +15,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cp ../../deploy/customization/prepare_transactions/custom_functions.py ./
+cp $1/customization/prepare_transactions/custom_functions.py ./

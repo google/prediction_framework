@@ -16,9 +16,15 @@
 # limitations under the License.
 #
 
-CONFIG_PATH="../../deploy/config.yaml"
-CUSTOM_CONFIG_PATH="../../deploy/customization/variables/custom_variables.yaml"
-HELPERS_PATH="../../deploy/helpers.sh"
+if [ -z "$1"] 
+then 
+   DEPLOY_DIR="../../deploy"
+else
+   DEPLOY_DIR="$1"
+fi
+CONFIG_PATH="$DEPLOY_DIR/config.yaml"
+CUSTOM_CONFIG_PATH="$DEPLOY_DIR/customization/variables/custom_variables.yaml"
+HELPERS_PATH="$DEPLOY_DIR/helpers.sh"
 MEMORY="512MB"
 TIMEOUT="540"
 
