@@ -125,7 +125,7 @@ def _load_metadata(table):
      on a.model_date = b.model_date and b.model_date is not null
       """
 
-  return bigquery.Client().query(query).to_dataframe().reset_index(drop=True)
+  return bigquery.Client(project=BQ_LTV_GCP_PROJECT).query(query).to_dataframe().reset_index(drop=True)
 
 
 def _send_message(project, msg, topic_name):
