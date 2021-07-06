@@ -17,7 +17,8 @@ The framework will fit almost all use cases under the following conditions:
 *   Data output is stored in BQ
 *   Prepare, filter and post-process: &lt; 540 seconds time-limit (Cloud
     Function limit)
-*   AutoML model is used (if BQML or Tensorflow small changes need to be done)
+*   Vertex AutoML model is used (if BQML or Tensorflow small changes need to be 
+    done)
 *   You are familiar with Python
 *   The service account from the default Google project is used. That service
     account must be granted access to external resources. (If different SAs for
@@ -59,19 +60,14 @@ The framework is flexible enough to address that scenario.
     customer is up to the instantiation of the framework for the specific use
     case. Will be covered later).
 *   **Predict**: once the new customers are stored, this step will read them
-    from BigQuery and call the prediction using the AutoML API. A formula based
+    from BigQuery and call the prediction using Vertex API. A formula based
     on the result of the prediction could be applied to tune the value or to
     apply thresholds. Once the data is ready, it will be stored into the
     BigQuery within the target project.
-*   **Post\_process (only for AutoML Batch mode)**: A formula could be applied
+*   **Post\_process**: A formula could be applied
     to the AutoML batch results to tune the value or to apply thresholds. Once
     the data is ready, it will be stored into the BigQuery within the target
     project.
-*   **Stop model (only for AutoML Live mode)**: AutoML models need to be
-    deployed to make predictions and every running minute has a cost associated.
-    Limiting that cost is the purpose of this step, which will query
-    periodically if the model is deployed and no predictions on the fly, so the
-    model could be stopped.
 
 ### Understanding the BQ tables
 
@@ -122,7 +118,8 @@ conversionValue5 | FLOAT  | REQUIRED
 #### `metadata`
 
 Stores the information regarding the model to use, which will be used to
-correlate with the features table date suffix. The schema is fixed:
+correlate with the features table date suffix. This table is generated 
+automatically by the deployment script. The schema is fixed:
 
 Field name  | Type   | Mode
 ----------- | ------ | --------
@@ -162,6 +159,13 @@ Row | value    | type
 --- | -------- | --------
 1   | cat20093 | category
 2   | nestle   | brand
+
+#### Additional custom tables
+
+Additional tables can be added if required by the custom algorithms. This can be
+achieved via customization scripts. In order to run these scripts when the
+solution is deployed, you may add them to `deploy/customization/scripts`. Then,
+add a call to them on `deploy/customization/scripts/custom_deploy.sh`
 
 #### Why this table choice?
 
@@ -516,8 +520,7 @@ account the following permissions:
 *   _BigQuery Job User_ role on processing project.
 *   _BigQuery Data Viewer_ role on source tables on input project.
 *   _BigQuery Data Editor_ role on destination dataset on processing project.
-*   _AutoML Predictor_ role on the AutoML model on the model project.
-*   _AutoML Viewer_ role on the AutoML model on the model project.
+*   _Vertex AI User_ role on the AutoML model on the model project.
 *   _Cloud Datastore User_ role on the processing project.
 
 Second, go to the _model_ project, find the _AutoML Service Agent_ service
@@ -728,6 +731,15 @@ Firestore tables could be helpful to trace request stages (particularly for
 predictions completion).
 
 ## FAQ
+
+### "HOw can I deploy multiple instances at the same time?"
+Multiple concurrent deployments are possible:
+
+Each deployment must _at least_ have a different value for the following 
+parameters in `config.yaml`:
+
+ * Solution prefix and/or deployment name
+ * Output dataset
 
 ### “I execute a backfill but I do not see the tables populated”
 
