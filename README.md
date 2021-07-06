@@ -523,7 +523,7 @@ account the following permissions:
 *   _Vertex AI User_ role on the AutoML model on the model project.
 *   _Cloud Datastore User_ role on the processing project.
 
-Second, go to the _model_ project, find the _AutoML Service Agent_ service
+Second, go to the _model_ project, find the _AI Platform Service Agent_ service
 account on IAM (you may need to activate the _Include Google-provided role 
 grants_ checkbox in top-right corner). Copy its address and then grant it 
 _BigQuery Data Editor_ role on the destination dataset on the _processing_ 
