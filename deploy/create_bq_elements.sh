@@ -20,8 +20,6 @@ CONFIG_PATH="./config.yaml"
 QUERY_PATH="customization/queries/extract_all_transactions.sql"
 
 source "$ENV_PATH"
-source "$QUERY_PATH"
-
 
 if [[ "$SKIP_LTV_DATASET_CREATION" == "N" ]]; then
   CREATE_LTV_DATASET=$(bq mk -d \
