@@ -18,6 +18,8 @@
 
 ENV_PATH="./env.sh"
 FUNCTIONS_DIR="../cfs"
+DEPLOY_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 
 source "$ENV_PATH"
 
@@ -114,7 +116,7 @@ function deploy_cloud_functions {
   do
     pushd "$cf_dir" > /dev/null
     echo "Now deploying $cf_dir"
-    sh deploy.sh
+    sh deploy.sh "$DEPLOY_DIR"
     popd > /dev/null
   done
 }
