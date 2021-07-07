@@ -732,7 +732,7 @@ predictions completion).
 
 ## FAQ
 
-### "HOw can I deploy multiple instances at the same time?"
+### "How can I deploy multiple instances at the same time?"
 Multiple concurrent deployments are possible:
 
 Each deployment must _at least_ have a different value for the following 
@@ -740,6 +740,39 @@ parameters in `config.yaml`:
 
  * Solution prefix and/or deployment name
  * Output dataset
+
+Keeping multiple deployment configurations in your local copy is also possible.
+In order to do so, you can make as many copies of the `deploy` directory a
+necessary. Place the copies in  the same directory as the original `deploy` 
+directory. Just rename each copy to something descriptive of that particular 
+deployment. You can run each deployment by cding into that deployment's 
+directory and executing its `deploy.sh` script.
+
+Example:
+```
+prediction_framework
+├── cfs
+├── deploy
+│   └── ...
+├── deploy_20210601
+│   └── ...
+├── deploy_20210702
+│   └── ...
+├── design
+├── docs
+└── utils
+```
+
+In the summarize directory structure above, `deploy_20210601` and
+`deploy_20210702` hold different deployment configurations. Each directory has
+its own copy of `config.yaml`, `custom_scripts`, etc. At any point in time a
+deployment can be reproduced by cding into it and running the deployment script.
+For example:
+
+```
+cd deploy_20210601
+bash deploy.sh
+```
 
 ### “I execute a backfill but I do not see the tables populated”
 
