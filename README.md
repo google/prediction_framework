@@ -242,6 +242,10 @@ be altered unless extending the framework) and `deploy` directory, containing
 all the scripts required to make the deployment plus any customizations needed
 for the particular use case.
 
+Note: it's recommended to make a copy of the `deploy` folder for each deployment
+you make. That way, the original `deploy` folder is left unchanged for your
+reference (see [here](#deployments)).
+
 ![alt_text](docs/resources/image7.png "image_tooltip")
 
 ### Training phase
@@ -732,7 +736,7 @@ predictions completion).
 
 ## FAQ
 
-### "How can I deploy multiple instances at the same time?"
+### <a name="deployments"></a>"How can I deploy multiple instances at the same time?"
 Multiple concurrent deployments are possible:
 
 Each deployment must _at least_ have a different value for the following 
