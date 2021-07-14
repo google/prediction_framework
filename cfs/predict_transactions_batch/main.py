@@ -55,7 +55,7 @@ logger.addHandler(handler)
 DEPLOYMENT_NAME = os.getenv('DEPLOYMENT_NAME', '')
 SOLUTION_PREFIX = os.getenv('SOLUTION_PREFIX', '')
 
-MODEL_REGION = os.getenv('MODEL_REGION', '')
+MODEL_LOCATION = os.getenv('MODEL_LOCATION', '')
 MODEL_AUTOML_API_ENDPOINT = os.getenv('MODEL_AUTOML_API_ENDPOINT', '')
 MODEL_GCP_PROJECT = os.getenv('MODEL_GCP_PROJECT', '')
 
@@ -263,7 +263,7 @@ def _throttle_message(project, msg, enqueue_topic, success_topic, error_topic,
   _send_message(project, new_msg, enqueue_topic)
 
 
-def _start_processing(throttled, msg, model_gcp_project, model_region,
+def _start_processing(throttled, msg, model_gcp_project, model_location,
                       model_id, model_date, model_api_endpoint,
                       client_class_module, client_class, enqueue_topic,
                       success_topic, error_topic, source_topic, gcp_project,
@@ -278,7 +278,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
       system
     msg: JSON object representing the data to process
     model_gcp_project: String representing the name of the GCP project
-    model_region: String representing the regions of the prediction model
+    model_location: String representing the location of the prediction model
     model_id: String representing the ID of the prediction model to be
       used
     model_date: String representing the date of the model in YYYYMMDD format
@@ -309,7 +309,7 @@ def _start_processing(throttled, msg, model_gcp_project, model_region,
   if _obtain_batch_predict_slot(transaction, db):
 
     try:
-      job_name = _predict(model_id, model_gcp_project, model_region,
+      job_name = _predict(model_id, model_gcp_project, model_location,
             model_api_endpoint, gcp_project,
             f"bq://{msg['bq_input_to_predict_table']}_{msg['date']}",
             f"bq://{msg['bq_output_table'].split('.')[0]}")
@@ -348,7 +348,7 @@ def _is_throttled(event):
           not None) and (event.get('attributes').get('forwarded') is not None)
 
 
-def _predict(model_id, model_gcp_project, model_region,
+def _predict(model_id, model_gcp_project, model_location,
             model_api_endpoint, gcp_project, bq_input_uri, bq_output_uri):
   """It calls AutoML tables API to predict a batch os transactions
 
@@ -362,7 +362,7 @@ def _predict(model_id, model_gcp_project, model_region,
 
   authed_session = AuthorizedSession(credentials)
 
-  request_url = f'https://{model_api_endpoint}/v1/projects/{model_gcp_project}/locations/{model_region}/batchPredictionJobs'
+  request_url = f'https://{model_api_endpoint}/v1/projects/{model_gcp_project}/locations/{model_location}/batchPredictionJobs'
   request_data = json.dumps({
       'displayName': f'{DEPLOYMENT_NAME}_{SOLUTION_PREFIX}_batch_predict - {datetime.datetime.now()}',
       'inputConfig': {
@@ -377,7 +377,7 @@ def _predict(model_id, model_gcp_project, model_region,
               'outputUri': bq_output_uri
           }
       },
-      'model': f'projects/{model_gcp_project}/locations/{model_region}/models/{model_id}'
+      'model': f'projects/{model_gcp_project}/locations/{model_location}/models/{model_id}'
   })
   logger.debug('Creating batch prediction. URL: %r, Data: %r',
                request_url, request_data)
@@ -409,7 +409,7 @@ def main(event: Dict[str, Any],
   metadata_df = _load_metadata(BQ_LTV_METADATA_TABLE)
   model_date = str(metadata_df['model_date'][0])
   model_id = str(metadata_df['model_id'][0])
-  model_region = MODEL_REGION
+  model_location = MODEL_LOCATION
   model_api_endpoint = MODEL_AUTOML_API_ENDPOINT
 
   client_class_module = CLIENT_CLASS_MODULE
@@ -426,7 +426,7 @@ def main(event: Dict[str, Any],
   try:
 
     _start_processing(
-        _is_throttled(event), msg, model_gcp_project, model_region, model_id,
+        _is_throttled(event), msg, model_gcp_project, model_location, model_id,
         model_date, model_api_endpoint, client_class_module,
         client_class, enqueue_topic, success_topic, error_topic, source_topic,
         gcp_project, delay_in_seconds)
