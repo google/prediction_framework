@@ -126,7 +126,7 @@ def main(event: Dict[str, Any], context=Optional[Context]):
   _write_to_bigquery(
       hook_apply_formulas(_load_data_from_bq(query)), output_table)
   _delete_dataset(input_dataset)
-  hook_on_completion()
+  hook_on_completion(msg['date'])
 
 
 def _test():

@@ -112,8 +112,11 @@ def hook_apply_formulas(predictions: pd.DataFrame) -> pd.DataFrame:
   return predictions
 
 
-def hook_on_completion():
-  """Triggers any custom action after the result is written in to BQ"""
+def hook_on_completion(process_date: str):
+  """Triggers any custom action after the result is written in to BQ
+  Args:
+    process_date: In format YYYYMMDD
+  """
 
 
 # Declare the auxiliary functions here i.e
