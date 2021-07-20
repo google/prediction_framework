@@ -181,18 +181,30 @@ function create_service_account {
   fi
 }
 function set_service_account_permissions {
-  gcloud projects add-iam-policy-binding "$DEFAULT_GCP_PROJECT" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
-  --role=roles/editor \
-  --format "none"
-  gcloud projects add-iam-policy-binding "$DEFAULT_GCP_PROJECT" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
-  --role=roles/bigquery.admin \
-  --format "none"
-  gcloud projects add-iam-policy-binding "$DEFAULT_GCP_PROJECT" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
-  --role=roles/automl.editor \
-  --format "none"
+  DEFAULT_ROLES=( 
+    roles/bigquery.dataEditor
+    roles/bigquery.jobUser
+    roles/datastore.user
+    roles/pubsub.publisher
+  )
+
+  for ROLE in ${DEFAULT_ROLES[@]}
+  do
+    gcloud projects add-iam-policy-binding "$DEFAULT_GCP_PROJECT" \
+      --member="serviceAccount:$SERVICE_ACCOUNT" \
+      --role="$ROLE" \
+      --format "none"
+  done
+
+  gcloud projects add-iam-policy-binding "$MODEL_GCP_PROJECT" \
+    --member="serviceAccount:$SERVICE_ACCOUNT" \
+    --role=roles/aiplatform.user \
+    --format "none"
+
+  gcloud projects add-iam-policy-binding "$BQ_DATA_SOURCE_GCP_PROJECT" \
+    --member="serviceAccount:$SERVICE_ACCOUNT" \
+    --role=roles/bigquery.dataViewer \
+    --format "none"
 
 }
 function write_metadata_csv {

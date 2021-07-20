@@ -524,8 +524,10 @@ account the following permissions:
 *   _BigQuery Job User_ role on processing project.
 *   _BigQuery Data Viewer_ role on source tables on input project.
 *   _BigQuery Data Editor_ role on destination dataset on processing project.
-*   _Vertex AI User_ role on the AutoML model on the model project.
 *   _Cloud Datastore User_ role on the processing project.
+*   _Pub/Sub Publisher_ role on the processing project.
+*   _Vertex AI User_ role on the AutoML model on the model project.
+
 
 Second, go to the _model_ project, find the _AI Platform Service Agent_ service
 account on IAM (you may need to activate the _Include Google-provided role 
