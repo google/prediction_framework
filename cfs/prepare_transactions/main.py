@@ -26,6 +26,7 @@ from typing import Any, Dict, Optional
 from custom_functions import hook_get_bq_schema
 from custom_functions import hook_get_load_tx_query
 from custom_functions import hook_prepare
+from google.api_core import datetime_helpers
 from google.cloud import bigquery
 from google.cloud import firestore
 from google.cloud import pubsub_v1
@@ -153,7 +154,7 @@ def _check_table(meta_data_table, table):
       SELECT size_bytes FROM `{meta_data_table}` where  table_id = "{table}"; """
 
   job_config = bigquery.job.QueryJobConfig()
-
+  
   df = bigquery.Client().query(query, job_config=job_config).to_dataframe()
 
   if len(df['size_bytes']) == 0:
@@ -192,8 +193,8 @@ def _get_date(msg):
     format
   """
 
-  date = datetime.datetime.strptime(msg['runTime'], '%Y-%m-%dT%H:%M:%SZ')
-
+  runtime = msg['runTime']
+  date = datetime_helpers.from_rfc3339(runtime)
   return date.strftime('%Y%m%d')
 
 
