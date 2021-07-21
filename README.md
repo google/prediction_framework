@@ -518,16 +518,29 @@ projects for simplicity:
     reside. It is also where we'll store the output. We'll create it in the
     following steps.
 
-First, create a service account on _processing_ project. Grat this service
+First, create a service account on _processing_ project. Grant this service
 account the following permissions:
 
-*   _BigQuery Job User_ role on processing project.
-*   _BigQuery Data Viewer_ role on source tables on input project.
-*   _BigQuery Data Editor_ role on destination dataset on processing project.
-*   _Cloud Datastore User_ role on the processing project.
-*   _Pub/Sub Publisher_ role on the processing project.
-*   _Vertex AI User_ role on the AutoML model on the model project.
 
+*   **BigQuery User** role on the _processing_ project. This is required to run
+    jobs in Bigquery.
+*   **BigQuery Data Owner** role on the _processing_ project. This is required
+    to create and delete tables and datasets.
+*   **Cloud Datastore User** role on the _processing_ project. This is required
+    to use Datastore to write job coordination information.
+*   **Pub/Sub Publisher** role on the _processing_ project. This is required to
+    send notifications between the different cloud functions.
+
+*   **BigQuery Data Viewer** role on the _source dataset on the input project_.
+    This is required to read the input data.
+
+*   **Vertex AI User** role on the _AutoML model on the model project_.
+    This is required to trigger batch predictions.
+
+> Note that this first step can be done automatically by the setup script
+> if the user has sufficient permissions to create service accounts
+> and assign permissions.
+> For more information about how to do this automatically, see the FAQ below.
 
 Second, go to the _model_ project, find the _AI Platform Service Agent_ service
 account on IAM (you may need to activate the _Include Google-provided role 
@@ -873,3 +886,9 @@ Have you enabled the Native mode of Firestore?
 ### “The process has not triggered or failed due to temporary Cloud Function unavailability.”
 
 We only saw this error twice in 8 months, but you it could be circumvented by setting an alarm on logging/user/cloudfunction_errors [RATE] with the following policy "Any logging.googleapis.com/user/cloudfunction_errors stream increases by 1% for greater than 5 minutes". When the alarm triggers, you could use the backfill process to reprocess the missing data.
+
+### How can I adjust the permissions the script sets on the primary service account?
+
+This is being done in the `deploy/deploy.sh` script in the `set_service_account_permissions` function.
+This function first sets permissions on the processing project, then on the model project and finally
+on the dataset project.

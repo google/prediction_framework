@@ -181,14 +181,14 @@ function create_service_account {
   fi
 }
 function set_service_account_permissions {
-  DEFAULT_ROLES=( 
-    roles/bigquery.dataEditor
-    roles/bigquery.jobUser
+  # Set roles on the processing project
+  PROCESSING_ROLES=( 
+    roles/bigquery.dataOwner
+    roles/bigquery.user
     roles/datastore.user
     roles/pubsub.publisher
   )
-
-  for ROLE in ${DEFAULT_ROLES[@]}
+  for ROLE in ${PROCESSING_ROLES[@]}
   do
     gcloud projects add-iam-policy-binding "$DEFAULT_GCP_PROJECT" \
       --member="serviceAccount:$SERVICE_ACCOUNT" \
@@ -196,15 +196,29 @@ function set_service_account_permissions {
       --format "none"
   done
 
+  # Set roles on the model project
+  MODEL_ROLES=(
+    roles/aiplatform.user
+  )
+  for ROLE in ${MODEL_ROLES[@]}
+  do
   gcloud projects add-iam-policy-binding "$MODEL_GCP_PROJECT" \
     --member="serviceAccount:$SERVICE_ACCOUNT" \
-    --role=roles/aiplatform.user \
+    --role="$ROLE" \
     --format "none"
+  done
 
+  # Set roles on the data source project
+  SOURCE_ROLES=(
+    roles/bigquery.dataViewer
+  )
+  for ROLE in ${SOURCE_ROLES[@]}
+  do
   gcloud projects add-iam-policy-binding "$BQ_DATA_SOURCE_GCP_PROJECT" \
     --member="serviceAccount:$SERVICE_ACCOUNT" \
-    --role=roles/bigquery.dataViewer \
+    --role="$ROLE" \
     --format "none"
+  done
 
 }
 function write_metadata_csv {
