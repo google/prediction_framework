@@ -315,26 +315,29 @@ BQ_LTV_DATASET: dataset name to be used for all the generated tables.
 
 Sample Values:
 
-```BQ_LTV_GCP_PROJECT:
-BQ_LTV_GCP_BROAD_REGION: 'EU' BQ_LTV_DATASET: 'pltv'
+```
+BQ_LTV_GCP_PROJECT: 'my_ltv_project'
+BQ_LTV_GCP_BROAD_REGION: 'EU'
+BQ_LTV_DATASET: 'pltv'
 
 ```
 
 Set model configuration:
 
-```MODEL_GCP_PROJECT:
-resides. MODEL_REGION: the region of the project where the model resides.
+```
+MODEL_GCP_PROJECT: The project where the model exists
+MODEL_LOCATION: The location of the project where the model resides.
 MODEL_AUTOML_API_ENDPOINT: the endpoint according to the region.
-MODEL_NEW_CLIENT_DAYS: number of days which will define the cohort for new
-customers.
 MODEL_DATE: Date where the model was trained in YYYYMMDD format. It will be used
 to label metadata.
 ```
 
 Sample values:
 
-```MODEL_GCP_PROJECT:
-MODEL_AUTOML_API_ENDPOINT: 'eu-automl.googleapis.com:443'
+```
+MODEL_GCP_PROJECT: 'my_model_project'
+MODEL_LOCATION: 'europe-west4'
+MODEL_AUTOML_API_ENDPOINT: 'europe-west4-aiplatform.googleapis.com'
 MODEL_NEW_CLIENT_DAYS: '365'
 MODEL_DATE: '20210601'
 ```
@@ -396,9 +399,6 @@ of the task into the queue, affected by `MAX_TASKS_PER_POLL`.
 on the predict transactions task. The execution time will depend on
 `max(DELAY_PREPARE_IN_SECONDS, LONG_RUNNING_TASKS_POLLER_CONFIG)` and the
 position of the task into the queue, affected by `MAX_TASKS_PER_POLL`.
-
-`MAX_PREDICTION_BATCH_SIZE: '500'` → the number of rows to be queried per batch.
-Each batch is sent on a record by record basis to AutoML prediction.
 
 ##### Custom variables
 

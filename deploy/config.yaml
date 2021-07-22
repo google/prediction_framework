@@ -55,14 +55,8 @@ MODEL_ID: 'my_model_id'
 MODEL_GCP_PROJECT: 'my_project'
 # The model region. i.e eu (use lower case)
 MODEL_REGION: 'europe-west4'
-# The number of days without activity for a customer to be considered as new (irrelevant if not
-# focusing on new customers)
-MODEL_NEW_CLIENT_DAYS: '365'
 # The endpoint for automl i.e eu-automl.googleapis.com:443 | automl.googleapis.com:443
 MODEL_AUTOML_API_ENDPOINT: 'europe-west4-aiplatform.googleapis.com'
-# The number of rows to read at a time.Play with the value if you find API quota exceeded
-MAX_PREDICTION_BATCH_SIZE: '500'
-
 
 # Polling & throttling settings
 # =====================================================================
