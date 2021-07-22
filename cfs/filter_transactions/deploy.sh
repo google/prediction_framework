@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z "$1"] 
+if [ -z "$1" ] 
 then 
    DEPLOY_DIR="../../deploy"
 else
