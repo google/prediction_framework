@@ -47,6 +47,7 @@ BQ_LTV_GCP_PROJECT = str(os.getenv("BQ_LTV_GCP_PROJECT", ""))
 BQ_LTV_DATASET = str(os.getenv("BQ_LTV_DATASET", ""))
 BQ_LTV_PREDICTIONS_TABLE = str(
     os.getenv("BQ_LTV_PREDICTIONS_TABLE", ""))
+DATAFRAME_PROCESSING_ENABLED = os.getenv('DATAFRAME_PROCESSING_ENABLED', 'Y')
 
 
 def _load_data_from_bq(query):
@@ -87,6 +88,32 @@ def _write_to_bigquery(df, table_name):
   print("Loaded {} rows and {} columns to {}".format(table.num_rows,
                                                      len(table.schema),
                                                      table_name))
+                                                    
+def _load_direct_to_bigquery(query, output_table):
+  """Runs the load query and outputs the data directly to the next table in the pipeline.
+  
+  Args:
+    query: string Prepared SQL query to load from the prediction output table
+    output_table: string Fully qualified name of the output BQ table where query 
+      result is written.
+  
+  Returns:
+    int Number of rows in the target table after job completion.
+  """
+  # Set query to output directly to output table
+  job_config = bigquery.QueryJobConfig(
+      destination=output_table,
+      write_disposition='WRITE_TRUNCATE'
+  )
+  client = bigquery.Client()
+  job = client.query(query, job_config=job_config)  # Make an API request.
+  job.result()  # Wait for the job to complete.
+
+  table = client.get_table(output_table)  # Make an API request.
+  print('Loaded {} rows and {} columns to {}'.format(table.num_rows,
+                                                     len(table.schema),
+                                                     output_table))
+  return table.num_rows
 
 def _delete_dataset(dataset):
   """Deletes the dataset specified by the dataset parameter.
@@ -122,9 +149,15 @@ def main(event: Dict[str, Any], context=Optional[Context]):
 
   output_table = f'{BQ_LTV_GCP_PROJECT}.{BQ_LTV_DATASET}.{BQ_LTV_PREDICTIONS_TABLE}_{msg["date"]}'
 
+  dataframe_processing = not (DATAFRAME_PROCESSING_ENABLED == 'N')
+
   query = hook_get_load_predictions_query(input_table)
-  _write_to_bigquery(
-      hook_apply_formulas(_load_data_from_bq(query)), output_table)
+  if dataframe_processing:
+    _write_to_bigquery(
+        hook_apply_formulas(_load_data_from_bq(query)), output_table)
+  else:
+    _load_direct_to_bigquery(query, output_table)
+
   _delete_dataset(input_dataset)
   hook_on_completion(msg['date'])
 

@@ -23,9 +23,8 @@ import os
 import sys
 from typing import Any, Dict, Optional
 
-from custom_functions import hook_get_bq_schema
-from custom_functions import hook_get_load_tx_query
-from custom_functions import hook_prepare
+import custom_functions
+
 from google.api_core import datetime_helpers
 from google.cloud import bigquery
 from google.cloud import firestore
@@ -66,6 +65,8 @@ ENQUEUE_TASK_TOPIC = '{}.{}.{}'.format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
                                        os.getenv('ENQUEUE_TASK_TOPIC', ''))
 
 DELAY_IN_SECONDS = int(os.getenv('DELAY_PREPARE_IN_SECONDS', '120'))
+
+DATAFRAME_PROCESSING_ENABLED = os.getenv('DATAFRAME_PROCESSING_ENABLED', 'Y')
 
 
 def _load_metadata(table):
@@ -124,7 +125,7 @@ def _write_to_bigquery(df, table_name):
 
   job_config = bigquery.LoadJobConfig()
   job_config.write_disposition = 'WRITE_TRUNCATE'
-  job_config.schema = hook_get_bq_schema()
+  job_config.schema = custom_functions.hook_get_bq_schema()
 
   job = client.load_table_from_dataframe(
       dataframe, table_name, job_config=job_config)  # Make an API request.
@@ -175,11 +176,40 @@ def _load_tx_data_from_bq(table):
   Returns:
     A dataframe with all the table data
   """
-  query = hook_get_load_tx_query(table)
+  query = custom_functions.hook_get_load_tx_query(table)
 
   job_config = bigquery.job.QueryJobConfig()
 
   return bigquery.Client().query(query, job_config=job_config).to_dataframe()
+
+def _load_direct_to_bigquery(input_table, metadata_table, model_date, output_table):
+  """Runs the load query and outputs the data directly to the next table in the pipeline.
+  
+  Args:
+    input_table: A string representing the full table path
+    metadata_table: The fully-qualified name of the metadata table for this deployment.
+    model_date: A string in YYYYMMDD format representing the date of the current model.
+    output_table: Fully qualified name of the output BQ table where filtered 
+      transactions are written.
+  
+  Returns:
+    int Number of rows in the target table after job completion.
+  """
+  query = custom_functions.hook_get_prepare_tx_query(input_table, metadata_table, model_date)
+  # Set query to output directly to output table
+  job_config = bigquery.QueryJobConfig(
+      destination=output_table,
+      write_disposition='WRITE_TRUNCATE'
+  )
+  client = bigquery.Client()
+  job = client.query(query, job_config=job_config)  # Make an API request.
+  job.result()  # Wait for the job to complete.
+
+  table = client.get_table(output_table)  # Make an API request.
+  print('Loaded {} rows and {} columns to {}'.format(table.num_rows,
+                                                     len(table.schema),
+                                                     output_table))
+  return table.num_rows
 
 
 def _get_date(msg):
@@ -336,6 +366,8 @@ def main(event: Dict[str, Any],
     output_bq_prepared_tx_data_table = '{}_{}'.format(
         BQ_LTV_PREPARED_PERIODIC_TX_TABLE, current_date)
 
+    dataframe_processing = not (DATAFRAME_PROCESSING_ENABLED == 'N')
+
     if event.get('attributes') is not None and event.get('attributes').get(
         'forwarded') is not None:
 
@@ -347,12 +379,17 @@ def main(event: Dict[str, Any],
 
         metadata_df = _load_metadata(BQ_LTV_METADATA_TABLE)
         model_date = str(metadata_df['model_date'][0])
+        if dataframe_processing:
 
-        df = _load_tx_data_from_bq(input_bq_transactions_table)
-        final_df = df
-        final_df = hook_prepare(final_df, model_date)
+          df = _load_tx_data_from_bq(input_bq_transactions_table)
+          final_df = df
+          final_df = custom_functions.hook_prepare(final_df, model_date)
+          _write_to_bigquery(final_df, output_bq_prepared_tx_data_table)
+        else:
+          _load_direct_to_bigquery(input_bq_transactions_table,
+                                   BQ_LTV_METADATA_TABLE, model_date,
+                                   output_bq_prepared_tx_data_table)
 
-        _write_to_bigquery(final_df, output_bq_prepared_tx_data_table)
         _send_message_to_next_stage(gcp_project, OUTBOUND_TOPIC, current_date)
       else:
         if table_check == 1:  # table exists but is empty, so do nothing

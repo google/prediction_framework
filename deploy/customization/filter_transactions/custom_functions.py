@@ -32,6 +32,9 @@ new customers only, repeating customers only or all customer transactions.
  NEW_CUSTOMER_PERIOD = int(
      os.getenv('NEW_CUSTOMER_PERIOD', 120))
 """
+from google.cloud import bigquery
+
+from typing import List
 
 
 def hook_get_load_data_query(table: str, current_date: str) -> str:
@@ -72,10 +75,12 @@ def hook_get_load_data_query(table: str, current_date: str) -> str:
   return ""
 
 
-def hook_get_bq_schema() -> str:
+def hook_get_bq_schema() -> List[bigquery.SchemaField]:
   """Returns the schema of the periodic transactions table to be written in BQ.
 
   It's possible just to define those fields which type won't be autodetected.
+
+  This function is only required if DATAFRAME_PROCESSING_ENABLED: 'Y'.
 
   Returns:
     An array of bigquery.SchemaField

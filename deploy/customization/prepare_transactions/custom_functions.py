@@ -21,7 +21,11 @@ transaction in order to be ready for prediction.
 The code here must be pretty similar to the feature engineering code used for
 the model training phase.
 
-If custom csv data is uploaded into BQ this will be the place where to use it
+If custom csv data is uploaded into BQ this will be the place where to use it.
+
+You should implement either the hook_get_load_tx_query and hook_prepare OR
+the hook_get_prepare_tx_query, depending of whether or not you are using 
+DATAFRAME_PROCESSING_ENABLED.
 
 
  Add your imports here i.e
@@ -42,13 +46,18 @@ If custom csv data is uploaded into BQ this will be the place where to use it
 
 import pandas as pd
 
+from google.cloud import bigquery
+from typing import List
 
-def hook_get_bq_schema() -> str:
+
+def hook_get_bq_schema() -> List[bigquery.SchemaField]:
   """Returns the schema for the prepared_periodic_transactions table.
 
   Best practice is to write all the fields, which pretty much will match your
   model features, but if you have many features (+100) in your model just
   specifying those fields BQ have problems identifying the type, would suffice.
+
+  This function is only required if DATAFRAME_PROCESSING_ENABLED: 'Y'.
 
   Returns:
     An array of bigquery.SchemaField
@@ -159,6 +168,34 @@ def hook_prepare(df: pd.DataFrame, model_date: str) -> pd.DataFrame:
   del model_date  # Unused by default
 
   return df
+
+
+def hook_get_prepare_tx_query(table: str, metadata_table:str, model_date: str) -> str:
+  """Returns the query that prepares the transactions to aggregate.
+
+  It loads all customer transactions and aggreagets it into a single row, so
+  they are prepared for prediction. Ideally it's loading from the table
+  BQ_LTV_ALL_PERIODIC_TX_TABLE with the suffix corresponding to a specific date -
+  this value is passed in the table parameter.
+
+  Additional processing can be done by joining with the metadata table as needed.
+
+  Args:
+    table: A string representing the full path of the BQ table where the periodic
+      transactions are located. This table is the BQ_LTV_ALL_PERIODIC_TX_TABLE with
+      the suffix corresponding to a specific date. It usually has multiple lines
+      per customer.
+    metadata_table: The fully-qualified name of the metadata table.
+    model_date: A string in YYYYMMDD format representing the model date. This
+      can be used to look up relevant rows in the metadata table if needed.
+
+  Returns:
+    A string with the query.
+  """
+  del metadata_table # Unused by default
+  del model_date # Unused by default
+
+  return f"""SELECT * FROM `{table}`"""
 
 
 # Declare any auxiliary function below this line

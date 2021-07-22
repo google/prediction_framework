@@ -33,6 +33,7 @@ to write those predictions into BQ
 """
 import pandas as pd
 from google.cloud import bigquery
+from typing import List
 
 def hook_get_load_predictions_query(table: str) -> str:
   """Returns the query that loads the predictions.
@@ -69,8 +70,10 @@ def hook_get_load_predictions_query(table: str) -> str:
   return f"""SELECT * FROM `{table}` LIMIT 10"""
 
 
-def hook_get_bq_schema() -> str:
-  """Returns the schema of the table with the actionable predictions
+def hook_get_bq_schema() -> List[bigquery.SchemaField]:
+  """Returns the schema of the table with the actionable predictions.
+
+  This function is only required if DATAFRAME_PROCESSING_ENABLED: 'Y'.
 
   Returns:
     An array of bigquery.SchemaField

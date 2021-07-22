@@ -303,6 +303,24 @@ BQ_DATA_SOURCE_DATA_SET: '1234567'
 BQ_DATA_SOURCE_TABLES: 'ga_sessions'
 ```
 
+
+Set whether or not to use in-memory processing.
+This may be useful to some implementations, but does not support array values.
+See https://github.com/googleapis/python-bigquery/issues/19 for this limitation.
+If this feature is turned off, each stage will only do a SQL transformation
+into the next stage table:
+
+```
+DATAFRAME_PROCESSING_ENABLED: Either `'Y'` or `'N'`.
+  Whether or not to pull data into cloud function memory
+  so it can be manipulated as Pandas dataframes.
+```
+
+Sample values:
+```
+DATAFRAME_PROCESSING_ENABLED: 'N'
+```
+
 Set the GCP dataset and region (used for data transfer) where all the
 intermediate processing is going to happen (it could be different from data
 source project):
@@ -351,7 +369,7 @@ LONG_RUNNING_TASKS_POLLER_CONFIG: cron syntax for polling waiting tasks.
 DISCARD_TASKS_OLDER_THAN_HOURS: expiration time in hours for the waiting tasks
 ```
 
-Sample values: 
+Sample values:
 ```
 DATA_SOURCE_PERIODIC_TX_POLLER_CONFIG: '0 \*/1 \* \* \*'
 LONG_RUNNING_TASKS_POLLER_CONFIG: '\*/2 \* \* \* \*'
@@ -391,7 +409,7 @@ prepare task. The execution time will depend on
 position of the task into the “queue”, affected by `MAX_TASKS_PER_POLL`
 
 `DELAY_FILTER_IN_SECONDS: '60'` → minimum delay to be
-introduced on the filter task. The execution time will depend on 
+introduced on the filter task. The execution time will depend on
 `max(DELAY_PREPARE_IN_SECONDS, LONG_RUNNING_TASKS_POLLER_CONFIG)` and the position 
 of the task into the queue, affected by `MAX_TASKS_PER_POLL`.
 
@@ -543,7 +561,7 @@ account the following permissions:
 > For more information about how to do this automatically, see the FAQ below.
 
 Second, go to the _model_ project, find the _AI Platform Service Agent_ service
-account on IAM (you may need to activate the _Include Google-provided role 
+account on IAM (you may need to activate the _Include Google-provided role
 grants_ checkbox in top-right corner). Copy its address and then grant it 
 _BigQuery Data Editor_ role on the destination dataset on the _processing_ 
 project.

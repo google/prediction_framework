@@ -31,6 +31,11 @@ BQ_DATA_SOURCE_DATA_SET: 'my_data_set'
 BQ_DATA_SOURCE_TABLES: 'just_table_name'
 # If data source table is sharded by date, set it to Y
 BQ_DATA_SOURCE_IS_SHARDED: 'N'
+# Enable processing of data in pandas dataframes. Values are Y|N. 
+# If this processing is turned off, the result of the extract queries
+# of the intermediate processing steps are written directly to the
+# output table instead of being loaded into a dataframe for processing.
+DATAFRAME_PROCESSING_ENABLED: 'Y'
 
 # BQ settings for LTV process
 # =====================================================================

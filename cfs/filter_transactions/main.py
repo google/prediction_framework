@@ -36,6 +36,8 @@ import pandas as pd  # load_data_from_bq returns pandas dataframe
 
 DEFAULT_GCP_PROJECT = os.getenv('DEFAULT_GCP_PROJECT', '')
 
+DATAFRAME_PROCESSING_ENABLED = os.getenv('DATAFRAME_PROCESSING_ENABLED', 'Y')
+
 DEPLOYMENT_NAME = os.getenv('DEPLOYMENT_NAME', '')
 SOLUTION_PREFIX = os.getenv('SOLUTION_PREFIX', '')
 PREPARE_COLLECTION_NAME = '{}_{}_{}'.format(DEPLOYMENT_NAME, SOLUTION_PREFIX,
@@ -74,12 +76,14 @@ DELAY_IN_SECONDS = int(
 def _load_data_from_bq(table, current_date):
   """Retrieves data from BQ table correspoinding to new customers.
 
-  Args:
-    table: the dataframe containing the data to be written.
-    current_date: the BQ table where the data must be written.
+  table: A string representing the full path of the BQ table where the
+    transactions are located. This table is the prepared periodic transactions
+    table which contains a single line per customer.
+  current_date: A string in YYYYMMDD format representing the date to process.
+    This will be appended to the suffix of the table.
 
   Returns:
-    A dataframe containing the data
+    A dataframe containing the loaded data
   """
   query = hook_get_load_data_query(table, current_date)
 
@@ -112,6 +116,36 @@ def _write_to_bigquery(df, table_id):
                                                      len(table.schema),
                                                      table_id))
 
+
+def _load_direct_to_bigquery(input_table, current_date, output_table):
+  """Runs the load query and outputs the data directly to the next table in the pipeline.
+  
+  Args:
+    input_table: string A string representing the full path of the BQ table where the
+      transactions are located. This table is the prepared periodic transactions
+      table which contains a single line per customer.
+    current_date: string A string in YYYYMMDD format representing the date to process.
+    output_table: string Fully qualified name of the output BQ table where filtered 
+      transactions are written.
+  
+  Returns:
+    int Number of rows in the target table after job completion.
+  """
+  query = hook_get_load_data_query(input_table, current_date)
+  # Set query to output directly to output table
+  job_config = bigquery.QueryJobConfig(
+      destination=output_table,
+      write_disposition='WRITE_TRUNCATE'
+  )
+  client = bigquery.Client()
+  job = client.query(query, job_config=job_config)  # Make an API request.
+  job.result()  # Wait for the job to complete.
+
+  table = client.get_table(output_table)  # Make an API request.
+  print('Loaded {} rows and {} columns to {}'.format(table.num_rows,
+                                                     len(table.schema),
+                                                     output_table))
+  return table.num_rows
 
 def _get_date(msg):
   """Returns the date included into the message.
@@ -250,6 +284,8 @@ def main(event: Dict[str, Any],
     enqueue_topic = ENQUEUE_TASK_TOPIC
     delay = DELAY_IN_SECONDS
 
+    dataframe_processing = not (DATAFRAME_PROCESSING_ENABLED == 'N')
+
     if (event.get('attributes') is
         not None) and (event.get('attributes').get('forwarded') is not None):
 
@@ -261,10 +297,17 @@ def main(event: Dict[str, Any],
 
         output_bq_prepared_tx_data_table = '{}_{}'.format(
             OUTPUT_BQ_PREPARED_TX_DATA_TABLE_PREFIX, current_date)
+        row_count = 0
+        if dataframe_processing:
+          df = _load_data_from_bq(input_bq_transactions_table, current_date)
+          row_count = len(df)
+          if row_count > 0:
+            _write_to_bigquery(df, output_bq_prepared_tx_data_table)
+        else:
+          row_count = _load_direct_to_bigquery(
+              input_bq_transactions_table, current_date, output_bq_prepared_tx_data_table)
 
-        df = _load_data_from_bq(input_bq_transactions_table, current_date)
-        if len(df) > 0:
-          _write_to_bigquery(df, output_bq_prepared_tx_data_table)
+        if row_count > 0:
           msg = _build_message(OUTPUT_BQ_PREPARED_TX_DATA_TABLE_PREFIX,
                                OUTPUT_BQ_PREDICTIONS_DATA_TABLE_PREFIX,
                                current_date)
