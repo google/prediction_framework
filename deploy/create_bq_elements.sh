@@ -51,8 +51,9 @@ echo "$TABLE"
 
 QUERY=$(cat "$QUERY_PATH")
 QUERY=$(echo "$QUERY" | sed -r 's,\\[trn],,g')
-QUERY=$(echo "$QUERY" | sed -r ':a;N;$!ba;s/\n/ /g')
+QUERY=$(echo "$QUERY" | sed -r 's,\\,\\\\,g')
 QUERY=$(echo "$QUERY" | sed -r 's,\",\\",g')
+QUERY=$(echo "$QUERY" | sed -r ':a;N;$!ba;s/\n/\\n/g')
 QUERY=$(echo "$QUERY" | sed -r 's,\$TABLE,'"$TABLE"',g')
 echo "$QUERY"
 
