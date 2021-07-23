@@ -136,7 +136,7 @@ def _check_data_source_table(data_source_project, data_source_data_set,
     df['result'][0]==2: data source table does not exist
   """
   final_input_table = (
-    '%s_%s!' % (input_table, day_before)
+    '%s_%s' % (input_table, day_before)
     if input_is_sharded == 'Y'
     else input_table)
 
