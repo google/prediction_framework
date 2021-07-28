@@ -47,7 +47,7 @@ CFG_FILE=$(cat $CONFIG_PATH > ./__config.yaml)
 
 
 gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_long_running_task_writer" \
-   --runtime python37 \
+   --runtime python38 \
    --entry-point main \
    --trigger-resource "$INBOUND_TOPIC_NAME" \
    --trigger-event google.pubsub.topic.publish \

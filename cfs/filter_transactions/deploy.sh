@@ -55,7 +55,7 @@ create_pubsub_topic "$OUTBOUND_TOPIC_NAME"
 CFG_FILE=$(cat $CONFIG_PATH $CUSTOM_CONFIG_PATH > ./__config.yaml)
 
 gcloud functions deploy "$DEPLOYMENT_NAME""_""$SOLUTION_PREFIX""_filter_transactions" \
-   --runtime python37 \
+   --runtime python38 \
    --entry-point main \
    --trigger-resource "$INBOUND_TOPIC_NAME" \
    --trigger-event google.pubsub.topic.publish \
